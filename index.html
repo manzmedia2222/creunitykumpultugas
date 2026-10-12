@@ -129,6 +129,33 @@ label{font-weight:700;font-size:13px;color:var(--mut)}
 .rpl{border:0;background:none;font-weight:800;font-size:11.5px;text-decoration:underline;padding:0 0 0 6px;color:#111}
 .cmn{margin-left:12px;padding-left:8px;border-left:3px solid #111;display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .tg.balasan{background:#fff}
+.ucard{border:3px solid #111;border-radius:18px;background:#fff;margin-bottom:12px;overflow:hidden;box-shadow:3px 3px 0 #111}
+.ucard.banned{background:#fff0ee}
+.uhead{display:flex;align-items:center;gap:12px;padding:10px 12px}
+.uhead img.av{width:50px;height:50px;border-radius:50%;object-fit:cover;border:3px solid #111;flex:none;cursor:pointer}
+.uhead .mid{flex:1;min-width:0}
+.uhead .nm{font-weight:800;font-size:16px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.uhead small{display:block;color:var(--mut);font-size:11.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uhead .chip{margin:0;font-size:11px}
+.ubn{background:var(--red);color:#fff;font-weight:700;font-size:12.5px;padding:6px 12px;border-top:3px solid #111}
+.uact{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:9px 12px;border-top:3px solid #111;background:#f4f4f0}
+.ubtns{display:flex;gap:8px;flex-wrap:wrap}
+.ubtns .btn{font-size:12px;padding:6px 11px;border-radius:12px;box-shadow:2px 2px 0 #111}
+.sw{display:inline-flex;align-items:center;gap:9px;cursor:pointer;font-weight:800;font-size:13px;color:#111;position:relative}
+.sw input{position:absolute;opacity:0;width:1px;height:1px}
+.sw .trk{width:46px;height:26px;border:3px solid #111;border-radius:999px;background:#fff;position:relative;flex:none}
+.sw .trk::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#111}
+.sw input:checked+.trk{background:var(--lime)}
+.sw input:checked+.trk::after{left:22px}
+.sw input:disabled+.trk{opacity:.5}
+.sw input:disabled~.lbl{opacity:.6}
+.sw input:focus-visible+.trk{outline:3px solid #111;outline-offset:2px}
+.card.td{cursor:default}
+.card.td .pic>img{filter:grayscale(1) blur(8px);opacity:.45}
+.tdo{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;padding:8px;font-size:11.5px;font-weight:700;color:#111}
+.tdo b{background:var(--red);color:#fff;border:3px solid #111;border-radius:10px;padding:0 8px;font-size:12px}
+.tdo span{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;background:#fffe;border:2px solid #111;border-radius:10px;padding:3px 7px;word-break:break-word}
+.prow.td{background:#fff0ee}
 .urow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;border:3px solid #111;border-radius:16px;padding:8px 10px;margin-bottom:10px;background:#fff}
 .urow img.av{width:44px;height:44px;border-radius:50%;object-fit:cover;border:3px solid #111;flex:none;cursor:pointer}
 .urow .mid{flex:1;min-width:0}
@@ -177,6 +204,7 @@ label{font-weight:700;font-size:13px;color:var(--mut)}
   <form class="cf" id="chatForm"><input id="chatIn" placeholder="Tulis pesan…" maxlength="300" autocomplete="off"><button class="btn">Kirim</button></form></aside>
 
 <div class="ov" id="ov"><div class="md" id="md"></div></div>
+<div class="ov" id="banOv" style="z-index:100"><div class="md" id="banMd"></div></div>
 <div id="toasts" aria-live="polite"></div>
 
 <script type="module">
@@ -215,7 +243,7 @@ function parseImg(s) {
 function toast(t) { const e = document.createElement('div'); e.className = 'toast'; e.textContent = t; $('#toasts').append(e); setTimeout(() => e.remove(), 4500); }
 
 // ---------- state ----------
-let user = null, banner, posts = [], users = {}, events = [], chat = [], adminIds = {}, admListOff = () => {}, upMap = {}, upDoc = null, upOff = () => {};
+let user = null, banner, posts = [], users = {}, events = [], chat = [], adminIds = {}, admListOff = () => {}, upMap = {}, upDoc = null, upOff = () => {}, bansMap = {}, banOff = () => {};
 let base = '#/tugas', authReady = false, postsLoaded = false, adminOk = false, adminOff = () => {}, waNum = '';
 let tab = 'home', viewUid = null, F = { theme: '', grade: '', sort: 'new' };
 const lsGet = k => { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } };
@@ -229,14 +257,16 @@ const isAdmin = () => !!user && adminOk === true;
 function mid(uid) { let h1 = 0xdeadbeef, h2 = 0x41c6ce57; for (let i = 0; i < uid.length; i++) { const c = uid.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
   h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
   return 'CRU-' + (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36).toUpperCase().padStart(6, '0').slice(-6); }
-const canUp = () => isAdmin() || upDoc?.approved === true;
+const isBanned = () => !!user && !!bansMap[user.uid];
+const canUp = () => !isBanned() && (isAdmin() || upDoc?.approved === true);
 const U = (uid, p) => ({ name: users[uid]?.name || p?.name || 'Anonim', photo: users[uid]?.photo || p?.photo || NOPP });
 
 // ---------- auth ----------
 $('#authBox').addEventListener('click', e => { if (e.target.closest('#login')) login(); if (e.target.closest('#myPP')) go('acc'); });
 async function login() { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (e) { toast('Login gagal: ' + (e.code || e.message)); } }
 onAuthStateChanged(auth, async u => {
-  user = u; upOff(); upOff = () => {}; upDoc = u ? undefined : null;
+  user = u; banOff(); banOff = onSnapshot(collection(db, 'bans'), q => { bansMap = {}; q.forEach(d => bansMap[d.id] = d.data()); renderAll(); }, () => {});
+  upOff(); upOff = () => {}; upDoc = u ? undefined : null;
   if (u) upOff = onSnapshot(doc(db, 'uploaders', u.uid), s => { const was = canUp(); upDoc = s.exists() ? s.data() : null; renderAll();
     if (!was && canUp() && /^#\/up/.test(location.hash)) { toast('Kamu sudah disetujui admin 🎉'); route(); } else retry(); }, () => { upDoc = null; retry(); });
   evOffMine(); evOffMine = () => {}; evMine = []; firstMine = true; mergeEvents();
@@ -254,7 +284,7 @@ function renderAuth() {
   chatDot();
   $('#authBox').innerHTML = user ? `<img class="me" id="myPP" src="${esc(U(user.uid).photo)}" alt="Akun">` : `<button class="btn" id="login">Login Google</button>`;
 }
-const needLogin = () => { if (!user) { toast('Login Google dulu ya 🙂'); return true; } };
+const needLogin = () => { if (!user) { toast('Login Google dulu ya 🙂'); return true; } if (isBanned()) { toast('Akunmu sedang diblokir admin'); return true; } };
 
 // ---------- listeners ----------
 onSnapshot(doc(db, 'config', 'contact'), s => { waNum = s.exists() ? (s.data().wa || '') : ''; renderAdm(); });
@@ -380,11 +410,24 @@ function route() {
 function retry() { if (/^#\/(post|atur|up)/.test(location.hash) && !$('#ov').classList.contains('on')) route(); }
 addEventListener('hashchange', route);
 document.querySelector('.nav').addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(b.dataset.t); });
-function renderAll() { renderHome(); renderGal(); renderRank(); renderAcc(); renderAdm(); renderAdmLists(); $('#fab').style.display = user && tab === 'home' ? 'grid' : 'none'; renderEvents(); }
+function renderAll() { renderHome(); renderGal(); renderRank(); renderAcc(); renderAdm(); renderAdmLists(); renderBan(); $('#fab').style.display = user && tab === 'home' ? 'grid' : 'none'; renderEvents(); }
+
+// ---------- akun diblokir ----------
+function renderBan() {
+  const b = isBanned() ? bansMap[user.uid] : null, ov = $('#banOv');
+  ov.classList.toggle('on', !!b);
+  if (!b) return;
+  $('#banMd').innerHTML = `<h3>🚫 Akun ditutup</h3><p>Akunmu <b>${esc(U(user.uid).name)}</b> (${mid(user.uid)}) diblokir oleh admin Creunity, jadi kamu tidak bisa memakai fitur apa pun.</p>
+  <div style="border:3px solid #111;border-radius:14px;padding:10px 12px;margin:12px 0;background:#fff0ee"><b>Alasan:</b><br>${esc(b.reason || 'Melanggar aturan komunitas')}</div>
+  <p class="hint" style="margin-bottom:12px">Kalau merasa ini keliru, hubungi admin.</p>
+  <button class="btn gh" id="banOut">Keluar</button>`;
+}
+$('#banOv').addEventListener('click', e => { if (e.target.closest('#banOut')) signOut(auth).then(() => toast('Sampai jumpa!')); });
 
 // ---------- cards ----------
 function card(p, i, showTheme) {
   const u = U(p.uid, p);
+  if (p.takedown) return `<div class="card td"><div class="pic"><img loading="lazy" src="${esc(p.img)}" alt=""><div class="tdo"><b>🚫 Di-takedown</b><span>${esc(p.takedown.reason || 'Melanggar aturan')}</span></div></div><div class="by"><img src="${esc(u.photo)}" alt=""><span>${esc(u.name)}</span></div><div class="time">${fmt(p.ts)}</div></div>`;
   return `<div class="card" data-post="${p.id}"><div class="pic"><img loading="lazy" src="${esc(p.img)}" alt="Karya ${esc(u.name)}"><span class="gr">${grade(p.avg, p.count)}</span>${showTheme ? `<span class="th">${esc(p.theme)}</span>` : i === 0 ? '<span class="up">UP</span>' : ''}
   </div><div class="by"><img src="${esc(u.photo)}" alt=""><span>${esc(u.name)}</span></div><div class="time">${fmt(p.ts)}${p.count ? ' · ★' + p.avg.toFixed(1) : ''}</div></div>`;
 }
@@ -508,6 +551,8 @@ function ppForm() {
 // ---------- detail + rating ----------
 function showPost(id) {
   const p = posts.find(x => x.id === id); if (!p) return;
+  if (p.takedown) return modal(`<h3>🚫 Karya di-takedown</h3><p>Karya <b>${esc(U(p.uid, p).name)}</b> (tema: ${esc(p.theme)}) tidak bisa dibuka lagi.</p>
+    <div style="border:3px solid #111;border-radius:14px;padding:10px 12px;margin:12px 0;background:#fff0ee"><b>Alasan:</b><br>${esc(p.takedown.reason || 'Melanggar aturan')}</div><button class="btn gh" data-x>Tutup</button>`);
   const u = U(p.uid, p), mine = user?.uid === p.uid, my = p.ratings?.[user?.uid] || 0;
   const stars = (n, cls) => [1, 2, 3, 4, 5].map(i => `<i class="${i <= n ? 'f' : ''}" data-s="${i}">★</i>`).join('');
   modal(`<img class="big" src="${esc(p.img)}" alt="Karya">
@@ -587,7 +632,7 @@ async function delPost(p) {
   } catch (e) { toast('Gagal menghapus: ' + (e.code || e.message)); return false; }
 }
 async function rate(p, s) {
-  if (needLogin()) return;
+  if (needLogin() || p.takedown) return;
   try {
     const ref = doc(db, 'posts', p.id);
     await runTransaction(db, async t => {
@@ -601,7 +646,7 @@ async function rate(p, s) {
 // ---------- GALERI ----------
 function members() {
   const m = {};
-  posts.forEach(p => { const o = m[p.uid] ??= { uid: p.uid, n: 0, sum: 0, rated: 0 }; o.n++; if (p.count) { o.sum += p.avg; o.rated++; } });
+  posts.forEach(p => { if (p.takedown) return; const o = m[p.uid] ??= { uid: p.uid, n: 0, sum: 0, rated: 0 }; o.n++; if (p.count) { o.sum += p.avg; o.rated++; } });
   return Object.values(m).map(o => ({ ...o, avg: o.rated ? o.sum / o.rated : 0 })).sort((a, b) => b.avg - a.avg || b.n - a.n);
 }
 function renderGal() {
@@ -637,6 +682,9 @@ $('#p-rank').addEventListener('click', e => { const r = e.target.closest('[data-
 function renderAcc() {
   const uid = viewUid || user?.uid, el = $('#p-acc');
   if (!uid) { el.innerHTML = `<div class="box" style="text-align:center"><h2 style="margin-bottom:10px;color:var(--lime);-webkit-text-stroke:5px #111;paint-order:stroke fill">Akun</h2><p style="margin-bottom:12px">Login dengan Google untuk mengumpulkan tugas, menilai karya, dan ikut chat.</p><button class="btn" id="login2">Login Google</button></div>`; return; }
+  if (bansMap[uid] && user?.uid !== uid) { const bu = U(uid); el.innerHTML = `<div class="sec"><h2>Propil</h2>${viewUid && viewUid !== user?.uid ? '<button class="btn gh" id="back">← Kembali</button>' : ''}</div>
+    <div class="box" style="text-align:center"><img src="${esc(bu.photo)}" alt="" style="width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid #111;filter:grayscale(1)"><h2 style="font-size:22px;margin:10px 0 4px">${esc(bu.name)}</h2><p class="hint">ID: <b>${mid(uid)}</b></p>
+    <p style="margin:12px 0 4px"><span class="chip" style="background:var(--red);color:#fff">🚫 Akun ditutup</span></p><p style="font-size:14px">Alasan: ${esc(bansMap[uid].reason || 'Melanggar aturan komunitas')}</p></div>`; return; }
   const own = user?.uid === uid, u = U(uid), soc = users[uid]?.social || {}, mine = posts.filter(p => p.uid === uid);
   const base = { tt: 'https://tiktok.com/@', ig: 'https://instagram.com/', fb: 'https://facebook.com/', yt: 'https://youtube.com/@' };
   const link = (k, v) => /^https?:/.test(v) ? v : base[k] + v.replace(/^@/, '');
@@ -701,10 +749,14 @@ function renderAdmLists() {
   const ue = $('#admUsers'), pe = $('#admPosts'); if (!ue || !pe) return;
   if (!isAdmin()) return;
   const cnt = {}; posts.forEach(p => cnt[p.uid] = (cnt[p.uid] || 0) + 1);
-  const list = Object.keys(users).map(id => ({ id, ...U(id), email: users[id]?.email || '', adm: !!adminIds[id], ok: !!upMap[id]?.approved, pend: !!upMap[id] && !upMap[id].approved }))
-    .sort((a, b) => b.pend - a.pend || b.adm - a.adm || a.name.localeCompare(b.name));
-  ue.innerHTML = `<p class="hint" style="margin-bottom:10px">${list.length} akun terdaftar · ${list.filter(x => x.adm).length} admin · ${list.filter(x => x.pend).length} menunggu persetujuan up tugas</p>` + (list.length ? list.map(x => `<div class="urow"><img class="av" src="${esc(x.photo)}" alt="" data-user="${x.id}"><div class="mid"><div class="nm">${esc(x.name)}${x.id === user.uid ? ' (kamu)' : ''}</div><small>ID ${mid(x.id)} · ${esc(x.email || 'email belum tercatat')} · ${cnt[x.id] || 0} karya</small></div>${x.adm ? '<span class="chip">Admin</span>' : ''}${x.pend ? '<span class="chip" style="background:#ffc928">⏳ Menunggu</span>' : ''}<label class="ck"><input type="checkbox" data-upck="${x.id}" ${x.ok || x.adm ? 'checked' : ''} ${x.adm ? 'disabled' : ''}>Boleh up tugas</label>${x.id === user.uid ? '' : x.adm ? `<button class="btn gh" data-role="rm" data-uid="${x.id}">Cabut admin</button>` : `<button class="btn" data-role="mk" data-uid="${x.id}">Jadikan admin</button>`}</div>`).join('') : '<div class="empty">Belum ada akun.</div>');
-  pe.innerHTML = posts.length ? posts.map(p => `<div class="prow"><img class="th2" src="${esc(p.img)}" alt="Karya" data-post="${p.id}"><div class="mid"><b>${esc(U(p.uid, p).name)}</b>Tema: ${esc(p.theme)}<br><span class="hint">${fmt(p.ts)}</span></div><button class="btn red" data-delpost="${p.id}">Hapus</button></div>`).join('') : '<div class="empty">Belum ada karya.</div>';
+  const list = Object.keys(users).map(id => ({ id, ...U(id), email: users[id]?.email || '', adm: !!adminIds[id], ok: !!upMap[id]?.approved, pend: !!upMap[id] && !upMap[id].approved, ban: bansMap[id] || null }))
+    .sort((a, b) => !!b.ban - !!a.ban || b.pend - a.pend || b.adm - a.adm || a.name.localeCompare(b.name));
+  ue.innerHTML = `<p class="hint" style="margin-bottom:12px">${list.length} akun · ${list.filter(x => x.adm).length} admin · ${list.filter(x => x.pend).length} menunggu persetujuan · ${list.filter(x => x.ban).length} diblokir</p>` + (list.length ? list.map(x => `<div class="ucard ${x.ban ? 'banned' : ''}">
+    <div class="uhead"><img class="av" src="${esc(x.photo)}" alt="" data-user="${x.id}"><div class="mid"><div class="nm">${esc(x.name)}${x.id === user.uid ? ' (kamu)' : ''}${x.adm ? '<span class="chip">👑 Admin</span>' : ''}${x.pend ? '<span class="chip" style="background:#ffc928">⏳ Menunggu</span>' : ''}${x.ban ? '<span class="chip" style="background:var(--red);color:#fff">🚫 Diblokir</span>' : ''}</div><small>ID ${mid(x.id)} · ${cnt[x.id] || 0} karya</small><small>${esc(x.email || 'email belum tercatat')}</small></div></div>
+    ${x.ban ? `<div class="ubn">Alasan: ${esc(x.ban.reason || '-')}</div>` : ''}
+    <div class="uact"><label class="sw"><input type="checkbox" data-upck="${x.id}" ${(x.ok || x.adm) && !x.ban ? 'checked' : ''} ${x.adm || x.ban ? 'disabled' : ''}><span class="trk"></span><span class="lbl">Boleh up tugas</span></label>
+    <div class="ubtns">${x.id === user.uid ? '' : (x.adm ? `<button class="btn gh" data-role="rm" data-uid="${x.id}">Cabut admin</button>` : `${x.ban ? '' : `<button class="btn" data-role="mk" data-uid="${x.id}">Jadikan admin</button>`}${x.ban ? `<button class="btn" data-unban="${x.id}">Buka blokir</button>` : `<button class="btn red" data-ban="${x.id}">🚫 Blokir</button>`}`)}</div></div></div>`).join('') : '<div class="empty">Belum ada akun.</div>');
+  pe.innerHTML = posts.length ? posts.map(p => `<div class="prow ${p.takedown ? 'td' : ''}"><img class="th2" src="${esc(p.img)}" alt="Karya" data-post="${p.id}"><div class="mid"><b>${esc(U(p.uid, p).name)}</b>Tema: ${esc(p.theme)}<br><span class="hint">${fmt(p.ts)}</span>${p.takedown ? `<br><span class="hint" style="color:#c0392b">🚫 Takedown: ${esc(p.takedown.reason || '-')}</span>` : ''}</div><div style="display:flex;flex-direction:column;gap:6px">${p.takedown ? `<button class="btn" data-untd="${p.id}">Pulihkan</button>` : `<button class="btn gh" data-td="${p.id}">Takedown</button>`}<button class="btn red" data-delpost="${p.id}">Hapus</button></div></div>`).join('') : '<div class="empty">Belum ada karya.</div>';
 }
 async function setRole(uid, make) {
   const nm = U(uid).name;
@@ -734,6 +786,29 @@ $('#p-adm').addEventListener('click', e => {
   const rb = e.target.closest('[data-role]'); if (rb) setRole(rb.dataset.uid, rb.dataset.role === 'mk');
   const dp = e.target.closest('[data-delpost]'); if (dp) { const p = posts.find(x => x.id === dp.dataset.delpost); if (p) delPost(p); }
   if (e.target.closest('#admOut')) deleteDoc(doc(db, 'admins', user.uid)).then(() => toast('Status admin dilepas'));
+});
+const reasonForm = (title, info, label, ph, btnTxt, onGo) => {
+  modal(`<h3>${title}</h3><p>${info}</p><label for="rsn" style="display:block;margin-top:10px">${label}</label><textarea class="ta" id="rsn" maxlength="200" placeholder="${ph}"></textarea>
+  <button class="btn red" id="rsGo">${btnTxt}</button> <button class="btn gh" data-x>Batal</button>`);
+  $('#rsGo').onclick = async () => { const r = $('#rsn').value.trim(); if (!r) return toast('Alasannya wajib diisi'); $('#rsGo').disabled = true; if (!(await onGo(r))) $('#rsGo').disabled = false; };
+};
+function blockForm(uid) {
+  reasonForm('Blokir akun', `Akun <b>${esc(U(uid).name)}</b> (${mid(uid)}) akan ditutup: tidak bisa memakai fitur apa pun dan profilnya tampil sebagai ditutup.`, 'Alasan blokir (terlihat oleh yang bersangkutan)', 'contoh: upload konten tidak pantas', 'Blokir akun', async r => {
+    try { await setDoc(doc(db, 'bans', uid), { reason: r, name: U(uid).name, mid: mid(uid), by: user.uid, ts: serverTimestamp() }); hideM(); toast('Akun diblokir'); return true; } catch (x) { toast('Gagal: ' + (x.code || x.message)); return false; }
+  });
+}
+function tdForm(p) {
+  reasonForm('Takedown karya', `Karya <b>${esc(U(p.uid, p).name)}</b> (tema: ${esc(p.theme)}) tetap tersimpan, tapi tidak bisa dibuka dan diberi tanda takedown.`, 'Alasan takedown (terlihat semua orang)', 'contoh: pakai AI padahal aturan no ai', 'Takedown karya', async r => {
+    try { await updateDoc(doc(db, 'posts', p.id), { takedown: { reason: r, by: user.uid, ts: Date.now() } }); addEvent(`⚠️ Karyamu (tema: ${p.theme}) di-takedown admin. Alasan: ${r}`, p.uid); hideM(); toast('Karya di-takedown'); return true; } catch (x) { toast('Gagal: ' + (x.code || x.message)); return false; }
+  });
+}
+$('#p-adm').addEventListener('click', async e => {
+  if (!isAdmin()) return;
+  const b = e.target.closest('[data-ban]'); if (b) return blockForm(b.dataset.ban);
+  const ub = e.target.closest('[data-unban]'); if (ub) { if (!confirm(`Buka blokir ${U(ub.dataset.unban).name}?`)) return; try { await deleteDoc(doc(db, 'bans', ub.dataset.unban)); toast('Blokir dibuka'); } catch (x) { toast('Gagal: ' + (x.code || x.message)); } return; }
+  const t = e.target.closest('[data-td]'); if (t) { const p = posts.find(x => x.id === t.dataset.td); if (p) tdForm(p); return; }
+  const ut = e.target.closest('[data-untd]'); if (ut) { const p = posts.find(x => x.id === ut.dataset.untd); if (!p) return;
+    try { await updateDoc(doc(db, 'posts', p.id), { takedown: null }); addEvent(`✅ Karyamu (tema: ${p.theme}) sudah dipulihkan admin`, p.uid); toast('Karya dipulihkan'); } catch (x) { toast('Gagal: ' + (x.code || x.message)); } }
 });
 $('#p-adm').addEventListener('change', async e => {
   const c = e.target.closest('[data-upck]'); if (!c || !isAdmin()) return;
