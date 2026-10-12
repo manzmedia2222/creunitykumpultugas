@@ -277,7 +277,7 @@ function renderEvents() {
 }
 function renderChat() {
   const box = $('#chatList'), atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-  box.innerHTML = chat.length ? chat.map(m => `<div class="msg ${m.uid === user?.uid ? 'me2' : ''}" id="m_${m.id}">${m.rid ? `<div class="qt" data-jump="${esc(m.rid)}"><b>${esc(m.rname || 'Anonim')}</b>${esc(m.rtext || '')}</div>` : ''}<b>${esc(U(m.uid, m).name)}</b>${esc(m.text)}<br><small>${fmt(m.ts)}</small><button class="rpl" type="button" data-reply="${m.id}">↩ Balas</button></div>`).join('') : '<div class="empty">Belum ada obrolan. Sapa dulu!</div>';
+  box.innerHTML = chat.length ? chat.map(m => `<div class="msg ${m.uid === user?.uid ? 'me2' : ''}" id="m_${m.id}">${m.rid ? `<div class="qt" data-jump="${esc(m.rid)}"><b>${esc(m.rname || 'Anonim')}</b>${esc(m.rtext || '')}</div>` : ''}<b>${esc(U(m.uid, m).name)}</b>${esc(m.text)}<br><small>${fmt(m.ts)}${m.edited ? ' · diedit' : ''}</small><button class="rpl" type="button" data-reply="${m.id}">↩ Balas</button>${m.uid === user?.uid ? `<button class="rpl" type="button" data-cedit="${m.id}">✏️ Edit</button>` : ''}${m.uid === user?.uid || isAdmin() ? `<button class="rpl" type="button" data-cdelm="${m.id}">🗑️ Hapus</button>` : ''}</div>`).join('') : '<div class="empty">Belum ada obrolan. Sapa dulu!</div>';
   if (atEnd) box.scrollTop = box.scrollHeight;
   chatDot();
 }
@@ -293,24 +293,42 @@ function setDot(id, n) {
 $('#bNot').onclick = () => { location.hash = '#/notif'; };
 $('#bChat').onclick = () => { location.hash = '#/chat'; };
 document.addEventListener('click', e => { if (e.target.closest('[data-close]')) location.hash = base; });
-let chatRe = null;
+let chatRe = null, chatEd = null;
+function setChatEd(m) {
+  chatEd = m ? { id: m.id, text: m.text } : null; if (m) chatRe = null;
+  const bar = $('#chatRe');
+  bar.style.display = m ? 'flex' : 'none';
+  bar.innerHTML = m ? '<span>✏️ Mengedit pesanmu</span><button class="cdel" type="button" id="chatReX" aria-label="Batal edit">✕</button>' : '';
+  $('#chatIn').value = m ? m.text : '';
+  if (m) $('#chatIn').focus();
+}
 function setChatRe(m) {
+  if (m && chatEd) setChatEd(null);
   chatRe = m ? { id: m.id, uid: m.uid, name: U(m.uid, m).name, text: m.text } : null;
   const bar = $('#chatRe');
   bar.style.display = m ? 'flex' : 'none';
   bar.innerHTML = m ? `<span>↩ Membalas <b>${esc(chatRe.name)}</b>: ${esc(m.text)}</span><button class="cdel" type="button" id="chatReX" aria-label="Batal balas">✕</button>` : '';
   if (m) $('#chatIn').focus();
 }
-$('#chatRe').addEventListener('click', e => { if (e.target.closest('#chatReX')) setChatRe(null); });
+$('#chatRe').addEventListener('click', e => { if (e.target.closest('#chatReX')) { if (chatEd) setChatEd(null); else setChatRe(null); } });
 $('#chatList').addEventListener('click', e => {
   const r = e.target.closest('[data-reply]');
   if (r) { if (needLogin()) return; const m = chat.find(x => x.id === r.dataset.reply); if (m) setChatRe(m); return; }
+  const ed = e.target.closest('[data-cedit]');
+  if (ed) { const m = chat.find(x => x.id === ed.dataset.cedit); if (m && m.uid === user?.uid) setChatEd(m); return; }
+  const dl = e.target.closest('[data-cdelm]');
+  if (dl) { const m = chat.find(x => x.id === dl.dataset.cdelm); if (!m || !confirm('Hapus pesan ini?')) return;
+    deleteDoc(doc(db, 'chat', m.id)).then(() => { if (chatEd?.id === m.id) setChatEd(null); toast('Pesan dihapus'); }).catch(x => toast('Gagal menghapus: ' + (x.code || x.message))); return; }
   const j = e.target.closest('[data-jump]');
   if (j) { const el = document.getElementById('m_' + j.dataset.jump); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('hl'); setTimeout(() => el.classList.remove('hl'), 1500); } else toast('Pesan aslinya sudah tidak ada di riwayat'); }
 });
 $('#chatForm').onsubmit = async e => {
   e.preventDefault(); if (needLogin()) return;
-  const t = $('#chatIn').value.trim(); if (!t) return; $('#chatIn').value = '';
+  const t = $('#chatIn').value.trim(); if (!t) return;
+  if (chatEd) { const ed = chatEd; setChatEd(null);
+    try { if (t !== ed.text) await updateDoc(doc(db, 'chat', ed.id), { text: t, edited: true }); toast('Pesan diedit'); } catch (x) { toast('Gagal mengedit: ' + (x.code || x.message)); }
+    return; }
+  $('#chatIn').value = '';
   const re = chatRe; setChatRe(null);
   try {
     const me = U(user.uid);
