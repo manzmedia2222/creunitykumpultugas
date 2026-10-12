@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Creunity Kumpul Tugas</title>
+<link rel="icon" href="https://i.ibb.co.com/8nH096v4/46fbc568-fc6b-435d-8235-356dc88a8219.jpg">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--card:#fff;--line:#111;--txt:#111;--mut:#5f665a;--neon:#3a8000;--lime:#9dff1f;--red:#ff4d3d;--sh:4px 4px 0 #111}
+*{box-sizing:border-box;margin:0;transition:none!important;animation:none!important}
+body{background:var(--bg);color:var(--txt);font:600 15px/1.45 "Plus Jakarta Sans",system-ui,sans-serif;padding-bottom:84px;min-height:100vh}
+h1,h2,h3{font-weight:800;line-height:1.15}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+:focus-visible{outline:3px solid #111;outline-offset:2px}
+.top{position:sticky;top:0;z-index:20;background:#fff;border-bottom:3px solid #111;padding:calc(8px + env(safe-area-inset-top,0px)) 14px 8px;display:flex;align-items:center;gap:8px}
+.top img.logo{width:44px;height:44px;border-radius:12px;object-fit:cover;border:3px solid #111}
+.top h1,.sec h2,.ban h2{color:var(--lime);-webkit-text-stroke:5px #111;paint-order:stroke fill;letter-spacing:.01em}
+.top h1{font-size:19px;flex:1;min-width:0;margin-left:4px}
+.ib{position:relative;width:42px;height:42px;border-radius:12px;border:3px solid #111;background:#fff;font-size:18px;box-shadow:2px 2px 0 #111}
+.ib .dot{position:absolute;top:-9px;right:-9px;background:var(--red);color:#fff;font:800 11px "Plus Jakarta Sans";min-width:20px;height:20px;border-radius:10px;border:2px solid #111;display:none;place-items:center;padding:0 4px}
+.btn{background:var(--lime);color:#111;font-weight:800;font-size:14px;padding:8px 16px;border-radius:14px;border:3px solid #111;box-shadow:3px 3px 0 #111}
+.btn:active{box-shadow:none;transform:translate(3px,3px)}
+.btn:disabled{opacity:.6}
+.btn.gh{background:#fff}
+.btn.red{background:var(--red);color:#fff}
+.me{width:42px;height:42px;border-radius:50%;object-fit:cover;cursor:pointer;border:3px solid #111}
+main{max-width:760px;margin:0 auto;padding:16px 14px}
+.page{display:none}.page.on{display:block}
+.box{background:#fff;border:3px solid #111;border-radius:22px;box-shadow:var(--sh);padding:16px;margin-bottom:22px}
+.box.ban{display:grid;grid-template-columns:1fr 150px;gap:14px;align-items:start}
+.ban h2{font-size:26px;margin-bottom:10px}
+.ban p{margin:6px 0;font-size:14px}
+.chip{display:inline-block;background:var(--lime);color:#111;border:2px solid #111;border-radius:999px;padding:0 11px;margin:2px 4px 2px 0;font-weight:800;font-size:13px}
+.ex{text-align:center;font-size:12px;color:var(--mut)}
+.ex img{width:100%;aspect-ratio:1;object-fit:cover;border:3px solid #111;border-radius:14px;display:block;cursor:zoom-in;margin-bottom:4px;background:#eee}
+.ban .adm{grid-column:1/-1;display:flex;gap:8px}
+@media(max-width:480px){.box.ban{grid-template-columns:1fr}.ex img{max-width:170px}}
+.sec{display:flex;justify-content:space-between;align-items:center;gap:10px;border:3px solid #111;border-radius:20px;box-shadow:var(--sh);padding:10px 14px;margin:0 0 16px;background:#fff}
+.sec h2{font-size:22px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.card{background:#fff;border:3px solid #111;border-radius:16px;overflow:hidden;box-shadow:var(--sh);cursor:pointer}
+.pic{position:relative;aspect-ratio:4/5;background:#ddd}
+.pic>img{width:100%;height:100%;object-fit:cover;display:block}
+.gr{position:absolute;top:6px;right:6px;background:#fff;color:#111;border:3px solid #111;border-radius:10px;font-weight:800;font-size:14px;padding:0 7px}
+.up{position:absolute;top:6px;left:6px;background:var(--red);color:#fff;border:3px solid #111;border-radius:10px;font-weight:800;font-size:12px;padding:0 8px}
+.th{position:absolute;top:6px;left:6px;max-width:52%;background:var(--lime);color:#111;border:3px solid #111;border-radius:10px;font-weight:800;font-size:11px;padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.by{display:flex;align-items:center;gap:7px;padding:6px 8px;border-top:3px solid #111;background:#fff;font-weight:800;font-size:12px}
+.by img{width:24px;height:24px;border-radius:50%;object-fit:cover;border:2px solid #111;flex:none}
+.by span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.time{font-size:10.5px;color:var(--mut);padding:0 8px 6px;background:#fff;font-weight:600}
+.empty{grid-column:1/-1;text-align:center;color:var(--mut);padding:30px 12px;border:3px dashed #111;border-radius:20px}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.filters select,.filters button{width:100%;background:#fff;border:3px solid #111;border-radius:999px;padding:9px 16px;font-weight:800;font-size:14px;appearance:none;box-shadow:3px 3px 0 #111;text-align:left}
+.filters button.on{background:var(--lime)}
+.fi,.ta{width:100%;background:#fff;border:3px solid #111;border-radius:14px;padding:9px 13px;margin:4px 0 12px;display:block}
+.ta{resize:vertical;min-height:70px}
+.row{display:flex;align-items:stretch;gap:12px;background:#fff;border:3px solid #111;border-radius:18px;box-shadow:var(--sh);padding:10px 0 10px 12px;margin-bottom:14px;cursor:pointer}
+.row .av{width:54px;height:54px;border-radius:50%;object-fit:cover;border:3px solid #111;flex:none;align-self:center}
+.row .nm{font-weight:800;font-size:16px}
+.row .mid{flex:1;min-width:0;font-size:13px;color:var(--mut);align-self:center}
+.row .mid b{color:var(--txt)}
+.row .g{font-weight:800;font-size:30px;min-width:74px;display:grid;place-items:center;border-left:3px solid #111;background:var(--lime);margin:-10px 0}
+.rk{font-weight:800;font-size:18px;width:24px;text-align:center;align-self:center}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:#fff;border-top:3px solid #111;display:flex;justify-content:center;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px))}
+.nav button{flex:1;max-width:130px;display:flex;flex-direction:column;align-items:center;padding:4px 2px;border-radius:14px;font-weight:800;font-size:11px;border:3px solid transparent}
+.nav button span{font-size:21px;line-height:1.2}
+.nav button.on{background:var(--lime);border-color:#111}
+.ov{position:fixed;inset:0;z-index:50;background:#000a;display:none;align-items:center;justify-content:center;padding:14px}
+.ov.on{display:flex}
+.md{background:#fff;border:3px solid #111;border-radius:22px;max-width:500px;width:100%;max-height:92vh;overflow:auto;padding:16px;box-shadow:6px 6px 0 #111}
+.md h3{font-size:21px;margin-bottom:10px}
+.md img.big{width:100%;max-height:60vh;object-fit:contain;background:#111;border-radius:14px;border:3px solid #111}
+.md .by{border:3px solid #111;border-radius:14px}
+.stars{display:flex;gap:4px;margin:6px 0 12px}
+.stars i{font-style:normal;font-size:36px;color:#ddd;cursor:pointer;line-height:1;-webkit-text-stroke:1px #111}
+.stars i.f{color:#ffc928}
+label{font-weight:700;font-size:13px;color:var(--mut)}
+.drawer{position:fixed;top:0;bottom:0;right:0;width:min(380px,100%);z-index:40;background:#fff;border-left:3px solid #111;display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.drawer.on{display:flex}
+.drawer header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:3px solid #111}
+.drawer header h3{font-size:19px}
+.dl{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.ev{border:2px solid #111;border-radius:12px;padding:8px 11px;font-size:14px}
+.ev small{display:block;color:var(--mut);font-size:11px;font-weight:600}
+.ev.new{background:var(--lime)}
+.msg{max-width:84%;padding:7px 12px;border:2px solid #111;border-radius:14px;font-size:14px;align-self:flex-start}
+.msg.me2{align-self:flex-end;background:var(--lime)}
+.msg b{display:block;font-weight:800;font-size:12px}
+.msg small{color:#0008;font-size:10px}
+.cf{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:3px solid #111}
+.cf input{flex:1;border:3px solid #111;border-radius:999px;padding:8px 14px}
+#toasts{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:8px;width:min(92vw,420px)}
+.toast{background:var(--lime);color:#111;border:3px solid #111;border-radius:14px;box-shadow:var(--sh);padding:9px 14px;font-weight:800;font-size:14px}
+.prof{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.prof .pp{width:104px;height:104px;border-radius:26px;object-fit:cover;border:3px solid #111;background:#eee}
+.prof .info{flex:1;min-width:200px}
+.soc{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.soc a{width:40px;height:40px;display:grid;place-items:center;background:var(--lime);color:#111;border:3px solid #111;border-radius:12px;font-weight:800;font-size:14px;text-decoration:none}
+.fab{position:fixed;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:19;width:58px;height:58px;padding:0;border-radius:18px;font-size:32px;display:none;place-items:center}
+.nav button svg{width:26px;height:26px;fill:none;stroke:#111;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;margin-bottom:2px}
+.nav button.on svg{fill:#fff}
+.ib svg{width:22px;height:22px;fill:none;stroke:#111;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.tut summary{cursor:pointer;font-weight:800;border:3px solid #111;border-radius:14px;padding:8px 12px;background:var(--lime);list-style:none}
+.tut summary::-webkit-details-marker{display:none}
+.tut .vid{width:min(100%,230px);aspect-ratio:9/16;margin:12px auto 8px;border:3px solid #111;border-radius:14px;overflow:hidden;background:#111}
+.tut .vid iframe{width:100%;height:100%;border:0;display:block}
+.hint{font-size:12px;color:var(--mut);font-weight:600}
+</style>
+</head>
+<body>
+<header class="top">
+  <img class="logo" src="https://i.ibb.co.com/8nH096v4/46fbc568-fc6b-435d-8235-356dc88a8219.jpg" alt="Logo Creunity">
+  <h1>Creunity<br>Kumpul Tugas</h1>
+  <button class="ib" id="bChat" aria-label="Chat publik"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H10l-6 4z"/><path d="M8.5 10h7M8.5 13h4"/></svg><span class="dot" id="dChat"></span></button>
+  <button class="ib" id="bNot" aria-label="Notifikasi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17v-6a6 6 0 0112 0v6l2 2H4z"/><path d="M10 21.5h4"/></svg><span class="dot" id="dNot"></span></button>
+  <div id="authBox"></div>
+</header>
+
+<main>
+  <section class="page on" id="p-home"></section>
+  <section class="page" id="p-gal"></section>
+  <section class="page" id="p-rank"></section>
+  <section class="page" id="p-acc"></section>
+  <section class="page" id="p-adm"></section>
+</main>
+
+<button class="btn fab" id="fab" aria-label="Up tugas">+</button>
+
+<nav class="nav">
+  <button data-t="home" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4.5" width="14" height="17" rx="3"/><path d="M9 4.5h6V7H9z"/><path d="M9 14.5l2 2 4-4.5"/></svg>Tugas</button>
+  <button data-t="gal"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3.5"/><circle cx="9" cy="9.5" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>Karya</button>
+  <button data-t="rank"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8l4.5 4 4-7 4 7 4.5-4-1.8 11H5.3z"/><path d="M5.5 19h13"/></svg>Skor</button>
+  <button data-t="acc"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c0-4.2 3.3-6.5 7.5-6.5s7.5 2.3 7.5 6.5z"/></svg>Akun</button>
+</nav>
+
+<aside class="drawer" id="dNotif"><header><h3>Notifikasi</h3><button class="ib" data-close="dNotif">✕</button></header><div class="dl" id="evList"></div></aside>
+<aside class="drawer" id="dChatP"><header><h3>Chat Publik</h3><button class="ib" data-close="dChatP">✕</button></header><div class="dl" id="chatList"></div>
+  <form class="cf" id="chatForm"><input id="chatIn" placeholder="Tulis pesan…" maxlength="300" autocomplete="off"><button class="btn">Kirim</button></form></aside>
+
+<div class="ov" id="ov"><div class="md" id="md"></div></div>
+<div id="toasts" aria-live="polite"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-analytics.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyDsU-Sn8dVjyNW2-T4PEaUVUkYrpy3Nm94",
+  authDomain: "creunity-kumpul-tugas.firebaseapp.com",
+  projectId: "creunity-kumpul-tugas",
+  storageBucket: "creunity-kumpul-tugas.firebasestorage.app",
+  messagingSenderId: "1044364506879",
+  appId: "1:1044364506879:web:ea330b800b9c0a6c7dfeca",
+  measurementId: "G-VM20CHN60Z"
+});
+try { getAnalytics(app); } catch (e) {}
+const auth = getAuth(app), db = getFirestore(app);
+const ADMIN_HASH = 'b24a962037b2368bca1ce882931d747c82558fabd0f6ace6c3cdc47726f0b445';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const NOPP = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" fill="#222"/><circle cx="40" cy="30" r="14" fill="#9dff1f"/><path d="M12 80c2-22 14-30 28-30s26 8 28 30z" fill="#9dff1f"/></svg>');
+const GR = [[4.95,'S'],[4.75,'A+'],[4.4,'A'],[4.1,'A-'],[3.8,'B+'],[3.4,'B'],[3.1,'B-'],[2.8,'C+'],[2.4,'C'],[2.1,'C-'],[1.6,'D+'],[1.2,'D'],[0,'D-']];
+const grade = (avg, n) => !n ? '–' : GR.find(g => avg >= g[0])[1];
+const tsMs = t => t?.toMillis ? t.toMillis() : (t || Date.now());
+const fmt = t => { const d = new Date(tsMs(t)); return d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) + ', ' + d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}).replace('.',':'); };
+
+// Deteksi link imgbb (embed HTML / link biasa) -> ambil URL gambar langsung
+function parseImg(s) {
+  s = (s || '').trim(); if (!s) return '';
+  const m = s.match(/src=["']([^"']+)["']/i) || s.match(/https?:\/\/i\.ibb\.co(?:\.com)?\/[^\s"'<>]+/i) || s.match(/https?:\/\/\S+\.(?:png|jpe?g|gif|webp)(?:\?\S*)?/i);
+  return m ? (m[1] || m[0]) : '';
+}
+function toast(t) { const e = document.createElement('div'); e.className = 'toast'; e.textContent = t; $('#toasts').append(e); setTimeout(() => e.remove(), 4500); }
+
+// ---------- state ----------
+let user = null, banner, posts = [], users = {}, events = [], chat = [];
+let base = '#/tugas', authReady = false, postsLoaded = false, adminOk = false, adminOff = () => {}, waNum = '';
+let tab = 'home', viewUid = null, F = { theme: '', grade: '', sort: 'new' };
+let seen = +(localStorage.getItem('seen') || 0), firstEv = true, firstChat = true, chatUnread = 0;
+const isAdmin = () => !!user && adminOk === true;
+const U = (uid, p) => ({ name: users[uid]?.name || p?.name || 'Anonim', photo: users[uid]?.photo || p?.photo || NOPP });
+
+// ---------- auth ----------
+$('#authBox').addEventListener('click', e => { if (e.target.closest('#login')) login(); if (e.target.closest('#myPP')) go('acc'); });
+async function login() { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (e) { toast('Login gagal: ' + (e.code || e.message)); } }
+onAuthStateChanged(auth, async u => {
+  user = u; adminOff(); adminOk = u ? undefined : false;
+  if (u) adminOff = onSnapshot(doc(db, 'admins', u.uid), s => { adminOk = s.exists(); renderAll(); retry(); }, () => { adminOk = false; });
+  if (u) {
+    const r = doc(db, 'users', u.uid);
+    try { const s = await getDoc(r); if (!s.exists()) await setDoc(r, { name: u.displayName || (u.email ? u.email.split('@')[0] : 'Member'), photo: u.photoURL || '', social: {} }); } catch (e) { toast('Firestore belum siap: cek aturan database'); }
+  }
+  authReady = true; renderAuth(); renderAll(); route();
+});
+function renderAuth() {
+  $('#authBox').innerHTML = user ? `<img class="me" id="myPP" src="${esc(U(user.uid).photo)}" alt="Akun">` : `<button class="btn" id="login">Login Google</button>`;
+}
+const needLogin = () => { if (!user) { toast('Login Google dulu ya 🙂'); return true; } };
+
+// ---------- listeners ----------
+onSnapshot(doc(db, 'config', 'contact'), s => { waNum = s.exists() ? (s.data().wa || '') : ''; renderAdm(); });
+onSnapshot(doc(db, 'config', 'banner'), s => { banner = s.exists() ? s.data() : null; renderHome(); retry(); });
+onSnapshot(collection(db, 'users'), s => { users = {}; s.forEach(d => users[d.id] = d.data()); renderAuth(); renderAll(); });
+onSnapshot(query(collection(db, 'posts'), orderBy('ts', 'desc'), limit(300)), s => { posts = s.docs.map(d => ({ id: d.id, ...d.data() })); postsLoaded = true; renderAll(); retry(); }, e => toast('Gagal memuat karya: ' + e.code));
+onSnapshot(query(collection(db, 'events'), orderBy('ts', 'desc'), limit(40)), s => {
+  events = s.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (!firstEv) s.docChanges().forEach(c => { if (c.type === 'added') { const e = c.doc.data(); if (visible(e)) toast('🔔 ' + e.text); } });
+  firstEv = false; renderEvents();
+});
+onSnapshot(query(collection(db, 'chat'), orderBy('ts', 'desc'), limit(80)), s => {
+  chat = s.docs.map(d => d.data()).reverse();
+  if (!firstChat) s.docChanges().forEach(c => { const m = c.doc.data(); if (c.type === 'added' && m.uid !== user?.uid && !$('#dChatP').classList.contains('on')) { chatUnread++; toast('💬 ' + m.name + ': ' + m.text.slice(0, 60)); } });
+  firstChat = false; renderChat();
+});
+const visible = e => (!e.to || e.to === user?.uid) && e.uid !== user?.uid;
+const addEvent = (text, to) => addDoc(collection(db, 'events'), { text, to: to || null, uid: user.uid, ts: serverTimestamp() }).catch(() => {});
+
+function renderEvents() {
+  const list = events.filter(visible), n = list.filter(e => tsMs(e.ts) > seen).length;
+  $('#evList').innerHTML = list.length ? list.map(e => `<div class="ev ${tsMs(e.ts) > seen ? 'new' : ''}">${esc(e.text)}<small>${fmt(e.ts)}</small></div>`).join('') : '<div class="empty">Belum ada notifikasi.</div>';
+  setDot('#dNot', n);
+}
+function renderChat() {
+  const box = $('#chatList'), atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  box.innerHTML = chat.length ? chat.map(m => `<div class="msg ${m.uid === user?.uid ? 'me2' : ''}"><b>${esc(U(m.uid, m).name)}</b>${esc(m.text)}<br><small>${fmt(m.ts)}</small></div>`).join('') : '<div class="empty">Belum ada obrolan. Sapa dulu!</div>';
+  if (atEnd) box.scrollTop = box.scrollHeight;
+  setDot('#dChat', chatUnread);
+}
+function setDot(id, n) { const e = $(id); e.textContent = n > 9 ? '9+' : n; e.style.display = n ? 'grid' : 'none'; }
+
+// ---------- panels ----------
+$('#bNot').onclick = () => { location.hash = '#/notif'; };
+$('#bChat').onclick = () => { location.hash = '#/chat'; };
+document.addEventListener('click', e => { if (e.target.closest('[data-close]')) location.hash = base; });
+$('#chatForm').onsubmit = async e => {
+  e.preventDefault(); if (needLogin()) return;
+  const t = $('#chatIn').value.trim(); if (!t) return; $('#chatIn').value = '';
+  try { await addDoc(collection(db, 'chat'), { uid: user.uid, name: U(user.uid).name, text: t, ts: serverTimestamp() }); } catch (e) { toast('Pesan gagal dikirim'); }
+};
+
+// ---------- modal ----------
+const modal = h => { $('#md').innerHTML = h; $('#ov').classList.add('on'); };
+const hideM = () => $('#ov').classList.remove('on');
+const closeM = () => { hideM(); if (/^#\/(post|up|atur)/.test(location.hash)) location.hash = base; };
+$('#ov').addEventListener('click', e => { if (e.target.id === 'ov' || e.target.closest('[data-x]')) closeM(); });
+
+// ---------- navigation ----------
+const RN = { home: 'tugas', gal: 'karya', rank: 'skor', acc: 'akun', adm: 'admin' };
+const PG = Object.fromEntries(Object.entries(RN).map(([k, v]) => [v, k]));
+function go(t, uid) { const h = '#/' + RN[t] + (t === 'acc' && uid ? '/' + uid : ''); location.hash === h ? route() : (location.hash = h); }
+function showPage(t) {
+  tab = t;
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === 'p-' + t));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  renderAll();
+}
+// Semua halaman memakai URL fragment: #/tugas  #/karya  #/skor  #/akun[/uid]  #/admin  #/post/id  #/notif  #/chat  #/up  #/atur
+function route() {
+  let r, a; try { [r, a] = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/'); } catch (e) { r = ''; }
+  hideM(); ['dNotif', 'dChatP'].forEach(id => $('#' + id).classList.remove('on'));
+  if (!r) return location.replace('#/tugas');
+  if (PG[r]) { base = '#/' + r + (a ? '/' + a : ''); viewUid = r === 'akun' && a ? a : null; showPage(PG[r]); scrollTo(0, 0); return; }
+  if (r === 'notif') { $('#dNotif').classList.add('on'); seen = Date.now(); localStorage.setItem('seen', seen); setTimeout(renderEvents, 1500); return; }
+  if (r === 'chat') { $('#dChatP').classList.add('on'); chatUnread = 0; renderChat(); $('#chatList').scrollTop = 1e9; return; }
+  if (r === 'post') { if (!posts.find(x => x.id === a)) { if (postsLoaded) { toast('Karya tidak ditemukan'); location.replace(base); } return; } showPost(a); return; }
+  if (r === 'up') { if (!authReady) return; if (needLogin()) return location.replace(base); upForm(); return; }
+  if (r === 'atur') { if (!authReady || banner === undefined || (user && adminOk === undefined)) return; if (!isAdmin()) { toast('Hanya admin yang bisa mengatur tugas'); return location.replace(base); } banForm(); return; }
+  location.replace('#/tugas');
+}
+function retry() { if (/^#\/(post|atur|up)/.test(location.hash) && !$('#ov').classList.contains('on')) route(); }
+addEventListener('hashchange', route);
+document.querySelector('.nav').addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(b.dataset.t); });
+function renderAll() { renderHome(); renderGal(); renderRank(); renderAcc(); renderAdm(); $('#fab').style.display = user && tab === 'home' ? 'grid' : 'none'; renderEvents(); }
+
+// ---------- cards ----------
+function card(p, i, showTheme) {
+  const u = U(p.uid, p);
+  return `<div class="card" data-post="${p.id}"><div class="pic"><img loading="lazy" src="${esc(p.img)}" alt="Karya ${esc(u.name)}"><span class="gr">${grade(p.avg, p.count)}</span>${showTheme ? `<span class="th">${esc(p.theme)}</span>` : i === 0 ? '<span class="up">UP</span>' : ''}
+  </div><div class="by"><img src="${esc(u.photo)}" alt=""><span>${esc(u.name)}</span></div><div class="time">${fmt(p.ts)}${p.count ? ' · ★' + p.avg.toFixed(1) : ''}</div></div>`;
+}
+document.addEventListener('click', e => {
+  const c = e.target.closest('[data-post]'); if (c) location.hash = '#/post/' + c.dataset.post;
+  const r = e.target.closest('[data-user]'); if (r) { closeM(); go('acc', r.dataset.user); }
+  const z = e.target.closest('[data-zoom]'); if (z) modal(`<img class="big" src="${esc(z.dataset.zoom)}" alt="Contoh tugas"><p style="margin-top:10px"><button class="btn gh" data-x>Tutup</button></p>`);
+});
+
+// ---------- HOME ----------
+function renderHome() {
+  const b = banner, th = (b?.themes || []);
+  let dl = '';
+  if (b?.deadline) { const d = new Date(b.deadline + 'T23:59:59'), left = Math.ceil((d - Date.now()) / 864e5);
+    dl = `<p>📅 Batas pengumpulan: <b>${d.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</b> <span class="chip" style="${left < 0 ? 'color:#ff5a4d;border-color:#ff5a4d' : ''}">${left < 0 ? 'sudah lewat' : left === 0 ? 'hari ini!' : left + ' hari lagi'}</span></p>`; }
+  const ex = parseImg(b?.example);
+  $('#p-home').innerHTML = `
+  <div class="box ban">
+    <div><h2>Tugas minggu ini</h2>
+      ${b ? `<p>Tema: ${th.length ? th.map(t => `<span class="chip">${esc(t)}</span>`).join('') : '<i>belum ada</i>'}</p>${b.note ? `<p>📝 ${esc(b.note)}</p>` : ''}${dl}` : '<p style="color:var(--mut)">Belum ada tugas minggu ini.</p>'}
+    </div>
+    ${ex ? `<div class="ex"><img src="${esc(ex)}" data-zoom="${esc(ex)}" alt="Contoh tugas">contoh tugas</div>` : ''}
+    ${b || isAdmin() ? `<div class="adm">${b ? '<button class="btn gh" id="copyTask">Salin tugas</button>' : ''}${isAdmin() ? '<button class="btn" id="editBan">✏️ Atur tugas</button>' : ''}</div>` : ''}
+  </div>
+  <div class="sec"><h2>Karya terbaru</h2>${user ? '<button class="btn" id="upBtn">+ Up tugas</button>' : ''}</div>
+  <div class="grid">${posts.length ? posts.slice(0, 60).map((p, i) => card(p, i)).join('') : '<div class="empty">Belum ada karya. Jadi yang pertama kumpul tugas! 🔥</div>'}</div>`;
+}
+$('#p-home').addEventListener('click', async e => {
+  if (e.target.closest('#upBtn')) location.hash = '#/up';
+  if (e.target.closest('#editBan')) location.hash = '#/atur';
+  if (e.target.closest('#copyTask')) copyTask();
+});
+async function copyTask() {
+  const b = banner; if (!b) return;
+  const L = ['Tugas minggu ini - Creunity Kumpul Tugas'];
+  if (b.themes?.length) L.push('Tema: ' + b.themes.join(', '));
+  if (b.note) L.push('Catatan: ' + b.note);
+  if (b.deadline) L.push('Batas pengumpulan: ' + new Date(b.deadline + 'T23:59:59').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }));
+  const ex = parseImg(b.example); if (ex) L.push('Contoh tugas: ' + ex);
+  L.push('Kumpulkan di: ' + location.href.split('#')[0] + '#/tugas');
+  const t = L.join('\n');
+  try { await navigator.clipboard.writeText(t); toast('Tugas disalin'); } catch (e) { prompt('Salin teks tugas ini:', t); }
+}
+$('#fab').onclick = () => { location.hash = '#/up'; };
+
+function banForm() {
+  const b = banner || {};
+  modal(`<h3>Atur tugas minggu ini</h3>
+  <label>Tema (pisahkan dengan koma, bebas berapa banyak)</label><input class="fi" id="bTh" value="${esc((b.themes || []).join(', '))}" placeholder="superhero, anatomi, horor">
+  <label>Catatan / aturan</label><input class="fi" id="bNote" value="${esc(b.note || '')}" placeholder="no ai">
+  <label>Batas pengumpulan</label><input class="fi" id="bDl" type="date" value="${esc(b.deadline || '')}">
+  <label>Contoh tugas (tempel link / kode embed imgbb, otomatis dideteksi)</label><textarea class="ta" id="bEx">${esc(b.example || '')}</textarea>
+  <button class="btn" id="bSave">Simpan</button> <button class="btn gh" data-x>Batal</button>`);
+  $('#bSave').onclick = async () => {
+    const themes = $('#bTh').value.split(',').map(s => s.trim()).filter(Boolean);
+    try { await setDoc(doc(db, 'config', 'banner'), { themes, note: $('#bNote').value.trim(), deadline: $('#bDl').value, example: $('#bEx').value.trim() });
+      addEvent('📢 Tugas minggu ini diperbarui' + (themes.length ? ': ' + themes.join(', ') : '')); closeM(); toast('Banner disimpan'); } catch (e) { toast('Gagal menyimpan'); }
+  };
+}
+
+const tutor = () => `<details class="tut"><summary>Cara dapat link imgbb (video tutorial)</summary>
+  <div class="vid"><iframe src="https://www.youtube.com/embed/E013t_Jh38U?rel=0&playsinline=1" title="Tutorial link imgbb" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+  <p class="hint">Upload gambar di imgbb.com, salin link atau kode embed-nya, lalu tempel di kolom bawah. Sistem otomatis mengambil link gambarnya.</p></details>`;
+const canLoad = src => new Promise((ok, no) => { const i = new Image(); i.onload = ok; i.onerror = no; i.src = src; });
+function bindPrev(inp, prev) { inp.oninput = () => { const l = parseImg(inp.value); if (l) { prev.src = l; prev.style.display = 'block'; } else prev.style.display = 'none'; }; prev.onerror = () => { prev.style.display = 'none'; }; }
+
+function upForm() {
+  if (needLogin()) return;
+  const th = banner?.themes || [];
+  modal(`<h3>Up tugas</h3>${tutor()}
+  <label for="uLink" style="display:block;margin-top:12px">Link gambar imgbb</label><input class="fi" id="uLink" placeholder="Tempel link atau kode embed imgbb" autocomplete="off">
+  <img id="uPrev" class="big" style="display:none;max-height:200px;margin-bottom:10px" alt="Pratinjau">
+  <label>Tema</label><select class="fi" id="uTh">${th.map(t => `<option>${esc(t)}</option>`).join('')}<option value="__o">Lainnya…</option></select>
+  <input class="fi" id="uOth" placeholder="Tulis tema sendiri" style="display:${th.length ? 'none' : 'block'}">
+  <button class="btn" id="uGo">Selesai / Up</button> <button class="btn gh" data-x>Batal</button>`);
+  const sel = $('#uTh'); if (!th.length) sel.value = '__o';
+  sel.onchange = () => $('#uOth').style.display = sel.value === '__o' ? 'block' : 'none';
+  bindPrev($('#uLink'), $('#uPrev'));
+  $('#uGo').onclick = async () => {
+    const theme = (sel.value === '__o' ? $('#uOth').value : sel.value).trim(), link = parseImg($('#uLink').value);
+    if (!link) return toast('Tempel link imgbb dulu');
+    if (!theme) return toast('Isi temanya dulu');
+    $('#uGo').disabled = true; $('#uGo').textContent = 'Memeriksa…';
+    try {
+      await canLoad(link).catch(() => { throw new Error('Link gambar tidak bisa dibuka. Pastikan itu link gambar dari imgbb'); });
+      const me = U(user.uid);
+      const ref = await addDoc(collection(db, 'posts'), { uid: user.uid, name: me.name, photo: me.photo, img: link, theme, ts: serverTimestamp(), ratings: {}, avg: 0, count: 0 });
+      addEvent(`🎨 ${me.name} mengumpulkan tugas (tema: ${theme})`);
+      toast('Tugas terkumpul! Jangan lupa kasih tau admin'); location.hash = '#/post/' + ref.id;
+    } catch (e) { toast(e.message); $('#uGo').disabled = false; $('#uGo').textContent = 'Selesai / Up'; }
+  };
+}
+function ppForm() {
+  if (needLogin()) return;
+  modal(`<h3>Ganti foto profil</h3>${tutor()}
+  <label for="pLink" style="display:block;margin-top:12px">Link gambar imgbb</label><input class="fi" id="pLink" placeholder="Tempel link atau kode embed imgbb" autocomplete="off">
+  <img id="pPrev" class="big" style="display:none;max-height:160px;margin-bottom:10px" alt="Pratinjau">
+  <button class="btn" id="pGo">Simpan foto</button> <button class="btn gh" data-x>Batal</button>`);
+  bindPrev($('#pLink'), $('#pPrev'));
+  $('#pGo').onclick = async () => {
+    const link = parseImg($('#pLink').value); if (!link) return toast('Tempel link imgbb dulu');
+    try { await canLoad(link); await updateDoc(doc(db, 'users', user.uid), { photo: link }); closeM(); toast('Foto profil diganti'); }
+    catch (e) { toast('Link gambar tidak bisa dibuka'); }
+  };
+}
+
+// ---------- detail + rating ----------
+function showPost(id) {
+  const p = posts.find(x => x.id === id); if (!p) return;
+  const u = U(p.uid, p), mine = user?.uid === p.uid, my = p.ratings?.[user?.uid] || 0;
+  const stars = (n, cls) => [1, 2, 3, 4, 5].map(i => `<i class="${i <= n ? 'f' : ''}" data-s="${i}">★</i>`).join('');
+  modal(`<img class="big" src="${esc(p.img)}" alt="Karya">
+  <div class="by" style="margin:10px 0;cursor:pointer;padding:6px 10px" data-user="${p.uid}"><img src="${esc(u.photo)}" alt=""><span style="font-size:15px">${esc(u.name)}</span></div>
+  <p>Tema: <b>${esc(p.theme)}</b></p><p style="color:var(--mut);font-size:13px">${fmt(p.ts)}</p>
+  <p style="margin-top:8px">Nilai: <b style="color:var(--neon);font:800 24px 'Plus Jakarta Sans'">${grade(p.avg, p.count)}</b> · ★ ${p.count ? p.avg.toFixed(2) : '-'} dari ${p.count} penilai</p>
+  ${mine ? '<p style="color:var(--mut)">Karya sendiri tidak bisa dinilai.</p>' : `<label>${user ? 'Beri bintangmu' : 'Login untuk menilai'}</label><div class="stars" id="stars">${stars(my)}</div>`}
+  <div style="display:flex;gap:8px;flex-wrap:wrap">${mine ? '<button class="btn" id="notAdm">Kasih tau admin</button>' : ''}<button class="btn gh" id="shareP">Bagikan link</button>${mine || isAdmin() ? '<button class="btn red" id="delP">Hapus</button>' : ''}<button class="btn gh" data-x>Tutup</button></div>`);
+  const st = $('#stars');
+  if (st) { st.onmouseover = e => { const s = +e.target.dataset.s; if (s) [...st.children].forEach((c, i) => c.classList.toggle('f', i < s)); };
+    st.onmouseleave = () => [...st.children].forEach((c, i) => c.classList.toggle('f', i < my));
+    st.onclick = e => { const s = +e.target.dataset.s; if (s) rate(p, s); }; }
+  $('#shareP').onclick = () => shareP(p); const nb = $('#notAdm'); if (nb) nb.onclick = () => notifyAdmin(p);
+  const d = $('#delP'); if (d) d.onclick = async () => { if (confirm('Hapus karya ini?')) { await deleteDoc(doc(db, 'posts', p.id)); closeM(); toast('Karya dihapus'); } };
+}
+async function rate(p, s) {
+  if (needLogin()) return;
+  try {
+    const ref = doc(db, 'posts', p.id);
+    await runTransaction(db, async t => {
+      const d = (await t.get(ref)).data(), r = { ...(d.ratings || {}), [user.uid]: s }, v = Object.values(r);
+      t.update(ref, { ratings: r, count: v.length, avg: v.reduce((a, b) => a + b, 0) / v.length });
+    });
+    toast(`Kamu memberi ${s}★`); addEvent(`⭐ ${U(user.uid).name} memberi ${s}★ pada karyamu`, p.uid); closeM();
+  } catch (e) { toast('Gagal menilai: ' + (e.code || e.message)); }
+}
+
+// ---------- GALERI ----------
+function members() {
+  const m = {};
+  posts.forEach(p => { const o = m[p.uid] ??= { uid: p.uid, n: 0, sum: 0, rated: 0 }; o.n++; if (p.count) { o.sum += p.avg; o.rated++; } });
+  return Object.values(m).map(o => ({ ...o, avg: o.rated ? o.sum / o.rated : 0 })).sort((a, b) => b.avg - a.avg || b.n - a.n);
+}
+function renderGal() {
+  const themes = [...new Set(posts.map(p => p.theme))];
+  let l = posts.slice();
+  if (F.theme) l = l.filter(p => p.theme === F.theme);
+  if (F.grade) l = l.filter(p => grade(p.avg, p.count) === F.grade);
+  if (F.sort === 'count') l.sort((a, b) => b.count - a.count);
+  if (F.sort === 'avg') l.sort((a, b) => b.avg - a.avg);
+  if (F.sort === 'top') { const t = members()[0]; l = t ? l.filter(p => p.uid === t.uid) : []; }
+  $('#p-gal').innerHTML = `<div class="sec"><h2>Penyimpanan karya</h2></div>
+  <div class="filters">
+    <select id="fTh" aria-label="Tema tugas"><option value="">🔍 Tema tugas</option>${themes.map(t => `<option ${F.theme === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
+    <button data-sort="avg" class="${F.sort === 'avg' ? 'on' : ''}">⭐ Rating tertinggi</button>
+    <button data-sort="count" class="${F.sort === 'count' ? 'on' : ''}">🔍 Rating terbanyak</button>
+    <button data-sort="top" class="${F.sort === 'top' ? 'on' : ''}">👑 Member teladan</button>
+    <select id="fGr" aria-label="Filter rating" style="grid-column:1/-1"><option value="">🔍 Semua rating</option>${['S','A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-'].map(g => `<option ${F.grade === g ? 'selected' : ''}>${g}</option>`).join('')}</select>
+  </div>
+  <div class="grid">${l.length ? l.map(p => card(p, 1, true)).join('') : '<div class="empty">Tidak ada karya yang cocok.</div>'}</div>`;
+}
+$('#p-gal').addEventListener('change', e => { if (e.target.id === 'fTh') F.theme = e.target.value; if (e.target.id === 'fGr') F.grade = e.target.value; renderGal(); });
+$('#p-gal').addEventListener('click', e => { const b = e.target.closest('[data-sort]'); if (b) { F.sort = F.sort === b.dataset.sort ? 'new' : b.dataset.sort; renderGal(); } });
+
+// ---------- RANGKUMAN ----------
+function renderRank() {
+  const m = members();
+  $('#p-rank').innerHTML = `<div class="sec"><h2>Rangkuman tugas member</h2></div>` + (m.length ? m.map((o, i) => { const u = U(o.uid);
+    return `<div class="row" data-user="${o.uid}"><div class="rk">${i === 0 ? '<svg viewBox="0 0 24 24" width="26" height="26" fill="#ffc928" stroke="#111" stroke-width="2.2" stroke-linejoin="round"><path d="M3.5 8l4.5 4 4-7 4 7 4.5-4-1.8 11H5.3z"/></svg>' : i + 1}</div><img class="av" src="${esc(u.photo)}" alt=""><div class="mid"><div class="nm" style="color:var(--txt)">${esc(u.name)}</div><b>${o.n}x</b> mengumpulkan tugas<br>Rata-rata <b>${o.rated ? '★' + o.avg.toFixed(2) : 'belum dinilai'}</b></div><div class="g">${grade(o.avg, o.rated)}</div></div>`; }).join('') : '<div class="empty">Belum ada member yang mengumpulkan tugas.</div>');
+}
+$('#p-rank').addEventListener('click', e => { const r = e.target.closest('[data-user]'); if (r) go('acc', r.dataset.user); });
+
+// ---------- AKUN ----------
+function renderAcc() {
+  const uid = viewUid || user?.uid, el = $('#p-acc');
+  if (!uid) { el.innerHTML = `<div class="box" style="text-align:center"><h2 style="margin-bottom:10px;color:var(--lime);-webkit-text-stroke:5px #111;paint-order:stroke fill">Akun</h2><p style="margin-bottom:12px">Login dengan Google untuk mengumpulkan tugas, menilai karya, dan ikut chat.</p><button class="btn" id="login2">Login Google</button></div>`; return; }
+  const own = user?.uid === uid, u = U(uid), soc = users[uid]?.social || {}, mine = posts.filter(p => p.uid === uid);
+  const base = { tt: 'https://tiktok.com/@', ig: 'https://instagram.com/', fb: 'https://facebook.com/', yt: 'https://youtube.com/@' };
+  const link = (k, v) => /^https?:/.test(v) ? v : base[k] + v.replace(/^@/, '');
+  el.innerHTML = `<div class="sec"><h2>Propil</h2>${viewUid && viewUid !== user?.uid ? '<button class="btn gh" id="back">← Kembali</button>' : ''}</div>
+  <div class="box prof"><img class="pp" src="${esc(u.photo)}" alt="Foto profil">
+    <div class="info">${own ? `<input class="fi" id="aName" value="${esc(u.name)}" maxlength="24" aria-label="Username"><button class="btn gh" id="aPP" type="button">+ Ganti pp</button>`
+      : `<h2 style="font-size:26px;color:var(--neon)">${esc(u.name)}</h2>`}
+      ${own ? `<div class="filters" style="margin:10px 0 0;grid-template-columns:1fr 1fr">${['tt','fb','ig','yt'].map(k => `<input class="fi" style="margin:0;border-radius:30px" id="s_${k}" placeholder="${k}" value="${esc(soc[k] || '')}">`).join('')}</div><p style="margin-top:10px"><button class="btn" id="aSave">Simpan</button> <button class="btn gh" id="logout">Keluar</button></p>`
+      : `<div class="soc">${['tt','fb','ig','yt'].filter(k => soc[k]).map(k => `<a target="_blank" rel="noopener" href="${esc(link(k, soc[k]))}">${k}</a>`).join('')}</div>`}
+    </div></div>
+  <div class="sec"><h2>Kumpulan gambar ${esc(u.name)}</h2>${own ? '<button class="btn" id="upBtn2">+ Up tugas</button>' : ''}</div>
+  <div class="grid">${mine.length ? mine.map(p => card(p, 1, true)).join('') : '<div class="empty">Belum ada gambar.</div>'}</div>`;
+}
+$('#p-acc').addEventListener('click', e => {
+  if (e.target.closest('#login2')) login();
+  if (e.target.closest('#aPP')) ppForm();
+  if (e.target.closest('#back')) go('acc');
+  if (e.target.closest('#upBtn2')) location.hash = '#/up';
+  if (e.target.closest('#logout')) signOut(auth).then(() => toast('Sampai jumpa!'));
+  if (e.target.closest('#aSave')) saveProfile();
+});
+async function saveProfile() {
+  const name = $('#aName').value.trim() || 'Member', social = {};
+  ['tt', 'fb', 'ig', 'yt'].forEach(k => social[k] = $('#s_' + k).value.trim());
+  try { await updateDoc(doc(db, 'users', user.uid), { name, social }); toast('Profil disimpan'); } catch (e) { toast('Gagal menyimpan'); }
+}
+
+const postLink = id => location.href.split('#')[0] + '#/post/' + id;
+const waIntl = v => { const d = String(v || '').replace(/\D/g, ''); return !d ? '' : d.startsWith('0') ? '62' + d.slice(1) : d.startsWith('62') ? d : d.startsWith('8') ? '62' + d : d; };
+function notifyAdmin(p) {
+  const n = waIntl(waNum);
+  if (!n) return toast('Nomor WA admin belum diatur');
+  const msg = `Halo admin Creunity 👋\nSaya ${U(p.uid, p).name} sudah mengumpulkan tugas (tema: ${p.theme}).\nLihat tugasnya di sini: ${postLink(p.id)}`;
+  window.open(`https://wa.me/${n}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+}
+async function shareP(p) {
+  const url = postLink(p.id), text = `Lihat tugas tema ${p.theme} dari ${U(p.uid, p).name} di Creunity Kumpul Tugas`;
+  try { if (navigator.share) { await navigator.share({ title: 'Creunity Kumpul Tugas', text, url }); return; } } catch (e) { if (e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(url); toast('Link disalin'); } catch (e) { prompt('Salin link ini:', url); }
+}
+async function sha256(t) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+
+function renderAdm() {
+  const el = $('#p-adm'), key = (user ? user.uid : 'x') + isAdmin() + waNum;
+  if (el.dataset.k === key) return; el.dataset.k = key;
+  let body;
+  if (!user) body = '<p>Login Google dulu untuk jadi admin.</p><p style="margin-top:12px"><button class="btn" id="login3">Login Google</button></p>';
+  else if (adminOk === undefined) body = '<p>Memuat…</p>';
+  else if (isAdmin()) body = `<p>Kamu admin.</p>
+    <form id="waForm" style="margin-top:12px"><label for="aWa">Nomor WA admin (contoh 08123456789)</label><input class="fi" id="aWa" type="tel" inputmode="numeric" value="${esc(waNum)}" placeholder="08xxxxxxxxxx" required>
+    <button class="btn">Simpan nomor</button></form>
+    <p style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="#/atur" style="text-decoration:none">Atur tugas minggu ini</a><button class="btn gh" id="admOut">Lepas admin</button></p>`;
+  else body = `<p style="margin-bottom:10px;color:var(--mut)">Masuk sebagai ${esc(U(user.uid).name)}. Isi email dan sandi admin untuk jadi admin.</p>
+    <form id="admForm"><label for="aEmail">Email admin</label><input class="fi" id="aEmail" type="email" required>
+    <label for="aPw">Sandi</label><input class="fi" id="aPw" type="password" required>
+    <button class="btn" id="admGo">Jadi admin</button></form>`;
+  el.innerHTML = `<div class="sec"><h2>Admin</h2></div><div class="box">${body}</div>`;
+}
+$('#p-adm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (e.target.id === 'admForm') {
+    try {
+      const h = await sha256($('#aEmail').value.trim().toLowerCase() + ':' + $('#aPw').value);
+      if (h !== ADMIN_HASH) return toast('Email atau sandi salah');
+      await setDoc(doc(db, 'admins', user.uid), { email: user.email || '', ts: serverTimestamp() }); toast('Kamu sekarang admin');
+    } catch (x) { toast('Gagal: ' + (x.code || x.message)); }
+  }
+  if (e.target.id === 'waForm') {
+    const d = $('#aWa').value.replace(/\D/g, '');
+    if (!/^(0|62|8)\d{8,13}$/.test(d)) return toast('Nomor WA tidak valid, contoh 08123456789');
+    try { await setDoc(doc(db, 'config', 'contact'), { wa: d }); toast('Nomor WA disimpan'); } catch (x) { toast('Gagal menyimpan'); }
+  }
+});
+$('#p-adm').addEventListener('click', e => {
+  if (e.target.closest('#login3')) login();
+  if (e.target.closest('#admOut')) deleteDoc(doc(db, 'admins', user.uid)).then(() => toast('Status admin dilepas'));
+});
+renderAll(); renderAuth();
+</script>
+</body>
+</html>
