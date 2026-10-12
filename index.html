@@ -107,6 +107,14 @@ label{font-weight:700;font-size:13px;color:var(--mut)}
 .tut .vid{width:min(100%,230px);aspect-ratio:9/16;margin:12px auto 8px;border:3px solid #111;border-radius:14px;overflow:hidden;background:#111}
 .tut .vid iframe{width:100%;height:100%;border:0;display:block}
 .hint{font-size:12px;color:var(--mut);font-weight:600}
+.mact{display:flex;gap:12px;margin-top:3px}
+.mact button{font-weight:800;font-size:11px;text-decoration:underline;padding:0;color:#111a}
+.quote{border-left:4px solid #111;background:#0000000f;border-radius:8px;padding:3px 8px;margin:4px 0;font-size:12px;cursor:pointer;font-weight:600}
+.quote b{font-size:11px}
+.cbar{display:none;align-items:center;justify-content:space-between;gap:8px;padding:6px 12px;border-top:3px solid #111;background:var(--lime);font-size:13px;font-weight:700}
+.cbar.on{display:flex}
+.cbar span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cbar button{font-weight:800;font-size:16px;padding:0 4px}
 </style>
 </head>
 <body>
@@ -137,6 +145,7 @@ label{font-weight:700;font-size:13px;color:var(--mut)}
 
 <aside class="drawer" id="dNotif"><header><h3>Notifikasi</h3><button class="ib" data-close="dNotif">✕</button></header><div class="dl" id="evList"></div></aside>
 <aside class="drawer" id="dChatP"><header><h3>Chat Publik</h3><button class="ib" data-close="dChatP">✕</button></header><div class="dl" id="chatList"></div>
+  <div class="cbar" id="chatBar"></div>
   <form class="cf" id="chatForm"><input id="chatIn" placeholder="Tulis pesan…" maxlength="300" autocomplete="off"><button class="btn">Kirim</button></form></aside>
 
 <div class="ov" id="ov"><div class="md" id="md"></div></div>
@@ -179,7 +188,7 @@ function toast(t) { const e = document.createElement('div'); e.className = 'toas
 
 // ---------- state ----------
 let user = null, banner, posts = [], users = {}, events = [], chat = [];
-let base = '#/tugas', authReady = false, postsLoaded = false, adminOk = false, adminOff = () => {}, waNum = '';
+let base = '#/tugas', authReady = false, postsLoaded = false, adminOk = false, adminOff = () => {}, waNum = '', replyTo = null, editId = null;
 let tab = 'home', viewUid = null, F = { theme: '', grade: '', sort: 'new' };
 let seen = +(localStorage.getItem('seen') || 0), firstEv = true, firstChat = true, chatUnread = 0;
 const isAdmin = () => !!user && adminOk === true;
@@ -213,7 +222,7 @@ onSnapshot(query(collection(db, 'events'), orderBy('ts', 'desc'), limit(40)), s 
   firstEv = false; renderEvents();
 });
 onSnapshot(query(collection(db, 'chat'), orderBy('ts', 'desc'), limit(80)), s => {
-  chat = s.docs.map(d => d.data()).reverse();
+  chat = s.docs.map(d => ({ id: d.id, ...d.data() })).reverse();
   if (!firstChat) s.docChanges().forEach(c => { const m = c.doc.data(); if (c.type === 'added' && m.uid !== user?.uid && !$('#dChatP').classList.contains('on')) { chatUnread++; toast('💬 ' + m.name + ': ' + m.text.slice(0, 60)); } });
   firstChat = false; renderChat();
 });
@@ -227,7 +236,13 @@ function renderEvents() {
 }
 function renderChat() {
   const box = $('#chatList'), atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-  box.innerHTML = chat.length ? chat.map(m => `<div class="msg ${m.uid === user?.uid ? 'me2' : ''}"><b>${esc(U(m.uid, m).name)}</b>${esc(m.text)}<br><small>${fmt(m.ts)}</small></div>`).join('') : '<div class="empty">Belum ada obrolan. Sapa dulu!</div>';
+  box.innerHTML = chat.length ? chat.map(m => {
+    const mine = m.uid === user?.uid, can = user && (mine || isAdmin());
+    return `<div class="msg ${mine ? 'me2' : ''}" id="m_${m.id}"><b>${esc(U(m.uid, m).name)}</b>
+      ${m.reply ? `<div class="quote" data-go="${esc(m.reply.id)}"><b>${esc(m.reply.name)}</b>${esc(m.reply.text)}</div>` : ''}
+      ${esc(m.text)}<br><small>${fmt(m.ts)}${m.edited ? ' · diedit' : ''}</small>
+      <div class="mact">${user ? `<button data-act="reply" data-id="${m.id}">Balas</button>` : ''}${mine ? `<button data-act="edit" data-id="${m.id}">Edit</button>` : ''}${can ? `<button data-act="del" data-id="${m.id}">Hapus</button>` : ''}</div></div>`;
+  }).join('') : '<div class="empty">Belum ada obrolan. Sapa dulu!</div>';
   if (atEnd) box.scrollTop = box.scrollHeight;
   setDot('#dChat', chatUnread);
 }
@@ -237,10 +252,33 @@ function setDot(id, n) { const e = $(id); e.textContent = n > 9 ? '9+' : n; e.st
 $('#bNot').onclick = () => { location.hash = '#/notif'; };
 $('#bChat').onclick = () => { location.hash = '#/chat'; };
 document.addEventListener('click', e => { if (e.target.closest('[data-close]')) location.hash = base; });
+function setBar() {
+  const bar = $('#chatBar');
+  bar.className = 'cbar' + (editId || replyTo ? ' on' : '');
+  bar.innerHTML = editId ? '<span>Mengedit pesan</span><button id="chatCancel" aria-label="Batal">✕</button>'
+    : replyTo ? `<span>Membalas <b>${esc(replyTo.name)}</b>: ${esc(replyTo.text)}</span><button id="chatCancel" aria-label="Batal">✕</button>` : '';
+}
+$('#chatBar').addEventListener('click', e => { if (e.target.closest('#chatCancel')) { if (editId) $('#chatIn').value = ''; editId = replyTo = null; setBar(); } });
+$('#chatList').addEventListener('click', async e => {
+  const g = e.target.closest('[data-go]');
+  if (g) { const el = document.getElementById('m_' + g.dataset.go); if (el) el.scrollIntoView({ block: 'center' }); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const m = chat.find(x => x.id === b.dataset.id); if (!m) return;
+  if (b.dataset.act === 'reply') { replyTo = { id: m.id, name: U(m.uid, m).name, text: m.text.slice(0, 80) }; editId = null; setBar(); $('#chatIn').focus(); }
+  if (b.dataset.act === 'edit') { editId = m.id; replyTo = null; $('#chatIn').value = m.text; setBar(); $('#chatIn').focus(); }
+  if (b.dataset.act === 'del') {
+    if (!confirm('Hapus pesan ini?')) return;
+    try { await deleteDoc(doc(db, 'chat', m.id)); if (editId === m.id) { editId = null; $('#chatIn').value = ''; setBar(); } } catch (x) { toast('Gagal menghapus'); }
+  }
+});
 $('#chatForm').onsubmit = async e => {
   e.preventDefault(); if (needLogin()) return;
-  const t = $('#chatIn').value.trim(); if (!t) return; $('#chatIn').value = '';
-  try { await addDoc(collection(db, 'chat'), { uid: user.uid, name: U(user.uid).name, text: t, ts: serverTimestamp() }); } catch (e) { toast('Pesan gagal dikirim'); }
+  const t = $('#chatIn').value.trim(); if (!t) return;
+  try {
+    if (editId) { await updateDoc(doc(db, 'chat', editId), { text: t, edited: true }); editId = null; }
+    else { const d = { uid: user.uid, name: U(user.uid).name, text: t, ts: serverTimestamp() }; if (replyTo) d.reply = replyTo; await addDoc(collection(db, 'chat'), d); replyTo = null; }
+    $('#chatIn').value = ''; setBar();
+  } catch (x) { toast('Pesan gagal dikirim'); }
 };
 
 // ---------- modal ----------
