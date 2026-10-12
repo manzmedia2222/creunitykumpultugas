@@ -109,7 +109,7 @@ label{font-weight:700;font-size:13px;color:var(--mut)}
 .hint{font-size:12px;color:var(--mut);font-weight:600}
 .cmbox{margin:14px 0 4px;border-top:3px solid #111;padding-top:12px}
 .cmbox h4{font-weight:800;font-size:16px;margin-bottom:8px}
-#cmList{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;max-height:240px;overflow:auto}
+#cmList{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;max-height:320px;overflow:auto}
 .cm{border:2px solid #111;border-radius:12px;padding:7px 10px;background:#fff}
 .cm .cmh{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .cm .cmh b{font-weight:800;font-size:13px;flex:1;min-width:0;cursor:pointer}
@@ -122,6 +122,13 @@ label{font-weight:700;font-size:13px;color:var(--mut)}
 .ctype button{flex:1;border:3px solid #111;border-radius:999px;background:#fff;padding:6px 10px;font-weight:800;font-size:13px;box-shadow:2px 2px 0 #111}
 .ctype button.on[data-ct=kritik]{background:#ffb3a8}
 .ctype button.on[data-ct=saran]{background:var(--lime)}
+.re{display:flex;align-items:center;gap:8px;background:var(--lime);border:2px solid #111;border-radius:12px;padding:5px 8px 5px 10px;font-size:12px;font-weight:700;margin-bottom:8px}
+.re span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qt{border-left:4px solid #111;background:#0000001a;border-radius:8px;padding:3px 8px;margin-bottom:5px;font-size:12px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msg.hl{outline:3px solid #111}
+.rpl{border:0;background:none;font-weight:800;font-size:11.5px;text-decoration:underline;padding:0 0 0 6px;color:#111}
+.cmn{margin-left:12px;padding-left:8px;border-left:3px solid #111;display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.tg.balasan{background:#fff}
 .urow{display:flex;align-items:center;gap:10px;border:3px solid #111;border-radius:16px;padding:8px 10px;margin-bottom:10px;background:#fff}
 .urow img.av{width:44px;height:44px;border-radius:50%;object-fit:cover;border:3px solid #111;flex:none;cursor:pointer}
 .urow .mid{flex:1;min-width:0}
@@ -164,6 +171,7 @@ label{font-weight:700;font-size:13px;color:var(--mut)}
 
 <aside class="drawer" id="dNotif"><header><h3>Notifikasi</h3><button class="ib" data-close="dNotif">✕</button></header><div class="dl" id="evList"></div></aside>
 <aside class="drawer" id="dChatP"><header><h3>Chat Publik</h3><button class="ib" data-close="dChatP">✕</button></header><div class="dl" id="chatList"></div>
+  <div class="re" id="chatRe" style="display:none;margin:0 12px 8px"></div>
   <form class="cf" id="chatForm"><input id="chatIn" placeholder="Tulis pesan…" maxlength="300" autocomplete="off"><button class="btn">Kirim</button></form></aside>
 
 <div class="ov" id="ov"><div class="md" id="md"></div></div>
@@ -173,7 +181,7 @@ label{font-weight:700;font-size:13px;color:var(--mut)}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-analytics.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyDsU-Sn8dVjyNW2-T4PEaUVUkYrpy3Nm94",
@@ -208,7 +216,12 @@ function toast(t) { const e = document.createElement('div'); e.className = 'toas
 let user = null, banner, posts = [], users = {}, events = [], chat = [], adminIds = {}, admListOff = () => {};
 let base = '#/tugas', authReady = false, postsLoaded = false, adminOk = false, adminOff = () => {}, waNum = '';
 let tab = 'home', viewUid = null, F = { theme: '', grade: '', sort: 'new' };
-let seen = +(localStorage.getItem('seen') || 0), firstEv = true, firstChat = true, chatUnread = 0;
+const lsGet = k => { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+let seen = lsGet('seen'), chatSeen = lsGet('chatSeen'), firstEv = true, firstChat = true;
+if (!seen) { seen = Date.now(); lsSet('seen', seen); }
+if (!chatSeen) { chatSeen = Date.now(); lsSet('chatSeen', chatSeen); }
+let evMain = [], evMine = [], evOffMine = () => {}, firstMine = true; const shownEv = new Set(), dots = { '#dNot': 0, '#dChat': 0 };
 const isAdmin = () => !!user && adminOk === true;
 const U = (uid, p) => ({ name: users[uid]?.name || p?.name || 'Anonim', photo: users[uid]?.photo || p?.photo || NOPP });
 
@@ -216,7 +229,9 @@ const U = (uid, p) => ({ name: users[uid]?.name || p?.name || 'Anonim', photo: u
 $('#authBox').addEventListener('click', e => { if (e.target.closest('#login')) login(); if (e.target.closest('#myPP')) go('acc'); });
 async function login() { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (e) { toast('Login gagal: ' + (e.code || e.message)); } }
 onAuthStateChanged(auth, async u => {
-  user = u; adminOff(); admListOff(); adminIds = {}; adminOk = u ? undefined : false;
+  user = u; evOffMine(); evOffMine = () => {}; evMine = []; firstMine = true; mergeEvents();
+  if (u) evOffMine = onSnapshot(query(collection(db, 'events'), where('to', '==', u.uid), limit(40)), s => { evMine = s.docs.map(d => ({ id: d.id, ...d.data() })); evToast(s, firstMine); firstMine = false; mergeEvents(); }, () => {});
+  adminOff(); admListOff(); adminIds = {}; adminOk = u ? undefined : false;
   if (u) adminOff = onSnapshot(doc(db, 'admins', u.uid), s => { adminOk = s.exists(); admListOff(); admListOff = () => {}; adminIds = {}; if (adminOk) admListOff = onSnapshot(collection(db, 'admins'), q => { adminIds = {}; q.forEach(d => adminIds[d.id] = d.data()); renderAdmLists(); }, () => {}); renderAll(); retry(); }, () => { adminOk = false; });
   if (u) {
     const r = doc(db, 'users', u.uid);
@@ -226,6 +241,7 @@ onAuthStateChanged(auth, async u => {
   authReady = true; renderAuth(); renderAll(); route();
 });
 function renderAuth() {
+  chatDot();
   $('#authBox').innerHTML = user ? `<img class="me" id="myPP" src="${esc(U(user.uid).photo)}" alt="Akun">` : `<button class="btn" id="login">Login Google</button>`;
 }
 const needLogin = () => { if (!user) { toast('Login Google dulu ya 🙂'); return true; } };
@@ -236,13 +252,19 @@ onSnapshot(doc(db, 'config', 'banner'), s => { banner = s.exists() ? s.data() : 
 onSnapshot(collection(db, 'users'), s => { users = {}; s.forEach(d => users[d.id] = d.data()); renderAuth(); renderAll(); });
 onSnapshot(query(collection(db, 'posts'), orderBy('ts', 'desc'), limit(300)), s => { posts = s.docs.map(d => ({ id: d.id, ...d.data() })); postsLoaded = true; renderAll(); retry(); }, e => toast('Gagal memuat karya: ' + e.code));
 onSnapshot(query(collection(db, 'events'), orderBy('ts', 'desc'), limit(40)), s => {
-  events = s.docs.map(d => ({ id: d.id, ...d.data() }));
-  if (!firstEv) s.docChanges().forEach(c => { if (c.type === 'added') { const e = c.doc.data(); if (visible(e)) toast('🔔 ' + e.text); } });
-  firstEv = false; renderEvents();
+  evMain = s.docs.map(d => ({ id: d.id, ...d.data() })); evToast(s, firstEv); firstEv = false; mergeEvents();
 });
+function evToast(s, initial) {
+  s.docChanges().forEach(c => {
+    if (c.type !== 'added') return;
+    const e = { id: c.doc.id, ...c.doc.data() }; if (shownEv.has(e.id)) return; shownEv.add(e.id);
+    if (!initial && !c.doc.metadata.hasPendingWrites && visible(e)) toast('🔔 ' + e.text);
+  });
+}
+function mergeEvents() { const m = new Map(); [...evMain, ...evMine].forEach(e => m.set(e.id, e)); events = [...m.values()].sort((a, b) => tsMs(b.ts) - tsMs(a.ts)); renderEvents(); }
 onSnapshot(query(collection(db, 'chat'), orderBy('ts', 'desc'), limit(80)), s => {
-  chat = s.docs.map(d => d.data()).reverse();
-  if (!firstChat) s.docChanges().forEach(c => { const m = c.doc.data(); if (c.type === 'added' && m.uid !== user?.uid && !$('#dChatP').classList.contains('on')) { chatUnread++; toast('💬 ' + m.name + ': ' + m.text.slice(0, 60)); } });
+  chat = s.docs.map(d => ({ id: d.id, ...d.data() })).reverse();
+  if (!firstChat) s.docChanges().forEach(c => { const m = c.doc.data(); if (c.type === 'added' && !c.doc.metadata.hasPendingWrites && m.uid !== user?.uid && !chatOpen()) { toast('💬 ' + m.name + ': ' + m.text.slice(0, 60)); } });
   firstChat = false; renderChat();
 });
 const visible = e => (!e.to || e.to === user?.uid) && e.uid !== user?.uid;
@@ -255,20 +277,46 @@ function renderEvents() {
 }
 function renderChat() {
   const box = $('#chatList'), atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-  box.innerHTML = chat.length ? chat.map(m => `<div class="msg ${m.uid === user?.uid ? 'me2' : ''}"><b>${esc(U(m.uid, m).name)}</b>${esc(m.text)}<br><small>${fmt(m.ts)}</small></div>`).join('') : '<div class="empty">Belum ada obrolan. Sapa dulu!</div>';
+  box.innerHTML = chat.length ? chat.map(m => `<div class="msg ${m.uid === user?.uid ? 'me2' : ''}" id="m_${m.id}">${m.rid ? `<div class="qt" data-jump="${esc(m.rid)}"><b>${esc(m.rname || 'Anonim')}</b>${esc(m.rtext || '')}</div>` : ''}<b>${esc(U(m.uid, m).name)}</b>${esc(m.text)}<br><small>${fmt(m.ts)}</small><button class="rpl" type="button" data-reply="${m.id}">↩ Balas</button></div>`).join('') : '<div class="empty">Belum ada obrolan. Sapa dulu!</div>';
   if (atEnd) box.scrollTop = box.scrollHeight;
-  setDot('#dChat', chatUnread);
+  chatDot();
 }
-function setDot(id, n) { const e = $(id); e.textContent = n > 9 ? '9+' : n; e.style.display = n ? 'grid' : 'none'; }
+const chatOpen = () => $('#dChatP').classList.contains('on');
+function markChat() { chatSeen = Math.max(Date.now(), ...chat.map(m => tsMs(m.ts))); lsSet('chatSeen', chatSeen); }
+function chatDot() { if (chatOpen()) markChat(); setDot('#dChat', chatOpen() ? 0 : chat.filter(m => m.uid !== user?.uid && tsMs(m.ts) > chatSeen).length); }
+function setDot(id, n) {
+  const e = $(id); e.textContent = n > 9 ? '9+' : n; e.style.display = n ? 'grid' : 'none'; dots[id] = n;
+  const t = dots['#dNot'] + dots['#dChat']; document.title = (t ? '(' + t + ') ' : '') + 'Creunity Kumpul Tugas';
+}
 
 // ---------- panels ----------
 $('#bNot').onclick = () => { location.hash = '#/notif'; };
 $('#bChat').onclick = () => { location.hash = '#/chat'; };
 document.addEventListener('click', e => { if (e.target.closest('[data-close]')) location.hash = base; });
+let chatRe = null;
+function setChatRe(m) {
+  chatRe = m ? { id: m.id, uid: m.uid, name: U(m.uid, m).name, text: m.text } : null;
+  const bar = $('#chatRe');
+  bar.style.display = m ? 'flex' : 'none';
+  bar.innerHTML = m ? `<span>↩ Membalas <b>${esc(chatRe.name)}</b>: ${esc(m.text)}</span><button class="cdel" type="button" id="chatReX" aria-label="Batal balas">✕</button>` : '';
+  if (m) $('#chatIn').focus();
+}
+$('#chatRe').addEventListener('click', e => { if (e.target.closest('#chatReX')) setChatRe(null); });
+$('#chatList').addEventListener('click', e => {
+  const r = e.target.closest('[data-reply]');
+  if (r) { if (needLogin()) return; const m = chat.find(x => x.id === r.dataset.reply); if (m) setChatRe(m); return; }
+  const j = e.target.closest('[data-jump]');
+  if (j) { const el = document.getElementById('m_' + j.dataset.jump); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('hl'); setTimeout(() => el.classList.remove('hl'), 1500); } else toast('Pesan aslinya sudah tidak ada di riwayat'); }
+});
 $('#chatForm').onsubmit = async e => {
   e.preventDefault(); if (needLogin()) return;
   const t = $('#chatIn').value.trim(); if (!t) return; $('#chatIn').value = '';
-  try { await addDoc(collection(db, 'chat'), { uid: user.uid, name: U(user.uid).name, text: t, ts: serverTimestamp() }); } catch (e) { toast('Pesan gagal dikirim'); }
+  const re = chatRe; setChatRe(null);
+  try {
+    const me = U(user.uid);
+    await addDoc(collection(db, 'chat'), { uid: user.uid, name: me.name, text: t, ts: serverTimestamp(), ...(re ? { rid: re.id, ruid: re.uid, rname: re.name, rtext: re.text.slice(0, 80) } : {}) });
+    if (re && re.uid !== user.uid) addEvent(`↩️ ${me.name} membalas chatmu: "${t.slice(0, 60)}"`, re.uid);
+  } catch (e) { toast('Pesan gagal dikirim'); }
 };
 
 // ---------- modal ----------
@@ -294,8 +342,8 @@ function route() {
   hideM(); ['dNotif', 'dChatP'].forEach(id => $('#' + id).classList.remove('on'));
   if (!r) return location.replace('#/tugas');
   if (PG[r]) { base = '#/' + r + (a ? '/' + a : ''); viewUid = r === 'akun' && a ? a : null; showPage(PG[r]); scrollTo(0, 0); return; }
-  if (r === 'notif') { $('#dNotif').classList.add('on'); seen = Date.now(); localStorage.setItem('seen', seen); setTimeout(renderEvents, 1500); return; }
-  if (r === 'chat') { $('#dChatP').classList.add('on'); chatUnread = 0; renderChat(); $('#chatList').scrollTop = 1e9; return; }
+  if (r === 'notif') { $('#dNotif').classList.add('on'); seen = Math.max(Date.now(), ...events.map(e => tsMs(e.ts))); lsSet('seen', seen); setTimeout(renderEvents, 1500); return; }
+  if (r === 'chat') { $('#dChatP').classList.add('on'); markChat(); renderChat(); $('#chatList').scrollTop = 1e9; return; }
   if (r === 'post') { if (!posts.find(x => x.id === a)) { if (postsLoaded) { toast('Karya tidak ditemukan'); location.replace(base); } return; } showPost(a); return; }
   if (r === 'up') { if (!authReady) return; if (needLogin()) return location.replace(base); upForm(); return; }
   if (r === 'atur') { if (!authReady || banner === undefined || (user && adminOk === undefined)) return; if (!isAdmin()) { toast('Hanya admin yang bisa mengatur tugas'); return location.replace(base); } banForm(); return; }
@@ -425,7 +473,7 @@ function showPost(id) {
   <p style="margin-top:8px">Nilai: <b style="color:var(--neon);font:800 24px 'Plus Jakarta Sans'">${grade(p.avg, p.count)}</b> · ★ ${p.count ? p.avg.toFixed(2) : '-'} dari ${p.count} penilai</p>
   ${mine ? '<p style="color:var(--mut)">Karya sendiri tidak bisa dinilai.</p>' : `<label>${user ? 'Beri bintangmu' : 'Login untuk menilai'}</label><div class="stars" id="stars">${stars(my)}</div>`}
   <div class="cmbox"><h4>💬 Komentar</h4><div id="cmList"><p class="hint">Memuat…</p></div>
-    ${user ? `<div class="ctype" id="cmType"><button type="button" data-ct="kritik">🎯 Kritik</button><button type="button" data-ct="saran">💡 Saran</button></div>
+    ${user ? `<div class="re" id="cmRe" style="display:none"></div><div class="ctype" id="cmType"><button type="button" data-ct="kritik">🎯 Kritik</button><button type="button" data-ct="saran">💡 Saran</button></div>
     <textarea class="ta" id="cmIn" maxlength="300" placeholder="Pilih kritik atau saran, lalu tulis komentarmu…" style="min-height:60px;margin-bottom:8px"></textarea><button class="btn" id="cmGo" type="button">Kirim komentar</button>` : '<p class="hint">Login Google untuk memberi kritik / saran.</p>'}
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">${mine ? '<button class="btn" id="notAdm">Kasih tau admin</button>' : ''}<button class="btn gh" id="shareP">Bagikan link</button>${mine || isAdmin() ? '<button class="btn red" id="delP">Hapus</button>' : ''}<button class="btn gh" data-x>Tutup</button></div>`);
@@ -438,28 +486,51 @@ function showPost(id) {
   const d = $('#delP'); if (d) d.onclick = async () => { if (await delPost(p)) closeM(); };
 }
 function bindComments(p) {
-  const list = $('#cmList'); let type = '', items = [];
-  const draw = () => { list.innerHTML = items.length ? items.map(c => `<div class="cm"><div class="cmh"><span class="tg ${c.type === 'saran' ? 'saran' : 'kritik'}">${c.type === 'saran' ? '💡 Saran' : '🎯 Kritik'}</span><b data-user="${c.uid}">${esc(U(c.uid, c).name)}</b>${c.uid === user?.uid || isAdmin() ? `<button class="cdel" type="button" data-cdel="${c.id}" aria-label="Hapus komentar">✕</button>` : ''}</div><p>${esc(c.text)}</p><small>${fmt(c.ts)}</small></div>`).join('') : '<p class="hint">Belum ada komentar. Jadi yang pertama!</p>'; };
-  cmOff = onSnapshot(query(collection(db, 'posts', p.id, 'comments'), orderBy('ts', 'asc'), limit(100)),
+  const list = $('#cmList'); let type = '', items = [], re = null;
+  const node = (c, kids, d) => {
+    const ch = kids[c.id] || [];
+    const tag = c.type === 'saran' ? '💡 Saran' : c.type === 'kritik' ? '🎯 Kritik' : '↩ Balasan';
+    return `<div class="cm"><div class="cmh"><span class="tg ${c.type === 'saran' ? 'saran' : c.type === 'kritik' ? 'kritik' : 'balasan'}">${tag}</span><b data-user="${c.uid}">${esc(U(c.uid, c).name)}</b>${c.uid === user?.uid || isAdmin() ? `<button class="cdel" type="button" data-cdel="${c.id}" aria-label="Hapus komentar">✕</button>` : ''}</div><p>${esc(c.text)}</p><small>${fmt(c.ts)}</small>${user ? `<button class="rpl" type="button" data-reply="${c.id}">↩ Balas</button>` : ''}</div>`
+      + (ch.length ? `<div class="${d < 5 ? 'cmn' : ''}">${ch.map(k => node(k, kids, d + 1)).join('')}</div>` : '');
+  };
+  const draw = () => {
+    const ids = new Set(items.map(c => c.id)), kids = {}, roots = [];
+    items.forEach(c => { if (c.parent && ids.has(c.parent)) (kids[c.parent] ??= []).push(c); else roots.push(c); });
+    list.innerHTML = roots.length ? roots.map(c => node(c, kids, 0)).join('') : '<p class="hint">Belum ada komentar. Jadi yang pertama!</p>';
+  };
+  cmOff = onSnapshot(query(collection(db, 'posts', p.id, 'comments'), orderBy('ts', 'asc'), limit(200)),
     s => { items = s.docs.map(d => ({ id: d.id, ...d.data() })); draw(); },
     e => { list.innerHTML = '<p class="hint">Komentar gagal dimuat: ' + esc(e.code || e.message) + '</p>'; });
+  const ct = $('#cmType'), bar = $('#cmRe');
+  const setRe = c => {
+    re = c; if (!ct) return;
+    bar.style.display = c ? 'flex' : 'none';
+    bar.innerHTML = c ? `<span>↩ Membalas <b>${esc(U(c.uid, c).name)}</b>: ${esc(c.text)}</span><button class="cdel" type="button" id="cmReX" aria-label="Batal balas">✕</button>` : '';
+    ct.style.display = c ? 'none' : 'flex';
+    $('#cmIn').placeholder = c ? 'Tulis balasanmu…' : 'Pilih kritik atau saran, lalu tulis komentarmu…';
+    if (c) $('#cmIn').focus();
+  };
   list.onclick = async e => {
+    const r = e.target.closest('[data-reply]');
+    if (r) { if (needLogin()) return; const c = items.find(x => x.id === r.dataset.reply); if (c) setRe(c); return; }
     const b = e.target.closest('[data-cdel]'); if (!b || !confirm('Hapus komentar ini?')) return;
     try { await deleteDoc(doc(db, 'posts', p.id, 'comments', b.dataset.cdel)); toast('Komentar dihapus'); } catch (x) { toast('Gagal menghapus: ' + (x.code || x.message)); }
   };
-  const ct = $('#cmType'); if (!ct) return;
+  if (!ct) return;
+  bar.onclick = e => { if (e.target.closest('#cmReX')) setRe(null); };
   ct.onclick = e => { const b = e.target.closest('[data-ct]'); if (!b) return; type = b.dataset.ct; [...ct.children].forEach(c => c.classList.toggle('on', c === b)); $('#cmIn').placeholder = type === 'kritik' ? 'Tulis kritikmu (yang perlu diperbaiki)…' : 'Tulis sarannya (ide untuk berikutnya)…'; };
   $('#cmGo').onclick = async () => {
     if (needLogin()) return;
     const t = $('#cmIn').value.trim();
-    if (!type) return toast('Pilih kritik atau saran dulu');
+    if (!re && !type) return toast('Pilih kritik atau saran dulu');
     if (!t) return toast('Tulis komentarnya dulu');
     $('#cmGo').disabled = true;
     try {
-      const me = U(user.uid);
-      await addDoc(collection(db, 'posts', p.id, 'comments'), { uid: user.uid, name: me.name, type, text: t, ts: serverTimestamp() });
-      if (p.uid !== user.uid) addEvent(`💬 ${me.name} memberi ${type} pada karyamu: "${t.slice(0, 60)}"`, p.uid);
-      $('#cmIn').value = ''; toast(type === 'kritik' ? 'Kritik terkirim' : 'Saran terkirim');
+      const me = U(user.uid), kind = re ? 'balasan' : type;
+      await addDoc(collection(db, 'posts', p.id, 'comments'), { uid: user.uid, name: me.name, type: kind, text: t, ts: serverTimestamp(), parent: re ? re.id : null, puid: re ? re.uid : null });
+      if (re && re.uid !== user.uid) addEvent(`↩️ ${me.name} membalas komentarmu: "${t.slice(0, 60)}"`, re.uid);
+      if (p.uid !== user.uid && !(re && re.uid === p.uid)) addEvent(`💬 ${me.name} ${re ? 'membalas komentar di' : 'memberi ' + type + ' pada'} karyamu: "${t.slice(0, 60)}"`, p.uid);
+      $('#cmIn').value = ''; toast(re ? 'Balasan terkirim' : type === 'kritik' ? 'Kritik terkirim' : 'Saran terkirim'); setRe(null);
     } catch (x) { toast('Gagal kirim: ' + (x.code || x.message)); }
     $('#cmGo').disabled = false;
   };
