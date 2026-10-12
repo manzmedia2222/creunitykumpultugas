@@ -129,13 +129,15 @@ label{font-weight:700;font-size:13px;color:var(--mut)}
 .rpl{border:0;background:none;font-weight:800;font-size:11.5px;text-decoration:underline;padding:0 0 0 6px;color:#111}
 .cmn{margin-left:12px;padding-left:8px;border-left:3px solid #111;display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .tg.balasan{background:#fff}
-.urow{display:flex;align-items:center;gap:10px;border:3px solid #111;border-radius:16px;padding:8px 10px;margin-bottom:10px;background:#fff}
+.urow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;border:3px solid #111;border-radius:16px;padding:8px 10px;margin-bottom:10px;background:#fff}
 .urow img.av{width:44px;height:44px;border-radius:50%;object-fit:cover;border:3px solid #111;flex:none;cursor:pointer}
 .urow .mid{flex:1;min-width:0}
 .urow .nm{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .urow small{display:block;color:var(--mut);font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .urow .btn{font-size:12px;padding:6px 10px;border-radius:12px;box-shadow:2px 2px 0 #111;flex:none}
 .urow .chip{margin:0;flex:none}
+.urow .ck{display:flex;align-items:center;gap:6px;font-weight:800;font-size:12px;color:#111;flex:none;cursor:pointer}
+.urow .ck input{width:20px;height:20px;accent-color:#3a8000;cursor:pointer}
 .prow{display:flex;align-items:center;gap:10px;border:3px solid #111;border-radius:16px;padding:8px 10px;margin-bottom:10px;background:#fff}
 .prow img.th2{width:56px;height:70px;object-fit:cover;border:3px solid #111;border-radius:10px;flex:none;cursor:zoom-in;background:#ddd}
 .prow .mid{flex:1;min-width:0;font-size:13px}
@@ -213,7 +215,7 @@ function parseImg(s) {
 function toast(t) { const e = document.createElement('div'); e.className = 'toast'; e.textContent = t; $('#toasts').append(e); setTimeout(() => e.remove(), 4500); }
 
 // ---------- state ----------
-let user = null, banner, posts = [], users = {}, events = [], chat = [], adminIds = {}, admListOff = () => {};
+let user = null, banner, posts = [], users = {}, events = [], chat = [], adminIds = {}, admListOff = () => {}, upMap = {}, upDoc = null, upOff = () => {};
 let base = '#/tugas', authReady = false, postsLoaded = false, adminOk = false, adminOff = () => {}, waNum = '';
 let tab = 'home', viewUid = null, F = { theme: '', grade: '', sort: 'new' };
 const lsGet = k => { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } };
@@ -223,20 +225,28 @@ if (!seen) { seen = Date.now(); lsSet('seen', seen); }
 if (!chatSeen) { chatSeen = Date.now(); lsSet('chatSeen', chatSeen); }
 let evMain = [], evMine = [], evOffMine = () => {}, firstMine = true; const shownEv = new Set(), dots = { '#dNot': 0, '#dChat': 0 };
 const isAdmin = () => !!user && adminOk === true;
+// ID unik per akun, dihitung dari uid -> akun lama otomatis ikut dapat
+function mid(uid) { let h1 = 0xdeadbeef, h2 = 0x41c6ce57; for (let i = 0; i < uid.length; i++) { const c = uid.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 'CRU-' + (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36).toUpperCase().padStart(6, '0').slice(-6); }
+const canUp = () => isAdmin() || upDoc?.approved === true;
 const U = (uid, p) => ({ name: users[uid]?.name || p?.name || 'Anonim', photo: users[uid]?.photo || p?.photo || NOPP });
 
 // ---------- auth ----------
 $('#authBox').addEventListener('click', e => { if (e.target.closest('#login')) login(); if (e.target.closest('#myPP')) go('acc'); });
 async function login() { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (e) { toast('Login gagal: ' + (e.code || e.message)); } }
 onAuthStateChanged(auth, async u => {
-  user = u; evOffMine(); evOffMine = () => {}; evMine = []; firstMine = true; mergeEvents();
+  user = u; upOff(); upOff = () => {}; upDoc = u ? undefined : null;
+  if (u) upOff = onSnapshot(doc(db, 'uploaders', u.uid), s => { const was = canUp(); upDoc = s.exists() ? s.data() : null; renderAll();
+    if (!was && canUp() && /^#\/up/.test(location.hash)) { toast('Kamu sudah disetujui admin 🎉'); route(); } else retry(); }, () => { upDoc = null; retry(); });
+  evOffMine(); evOffMine = () => {}; evMine = []; firstMine = true; mergeEvents();
   if (u) evOffMine = onSnapshot(query(collection(db, 'events'), where('to', '==', u.uid), limit(40)), s => { evMine = s.docs.map(d => ({ id: d.id, ...d.data() })); evToast(s, firstMine); firstMine = false; mergeEvents(); }, () => {});
-  adminOff(); admListOff(); adminIds = {}; adminOk = u ? undefined : false;
-  if (u) adminOff = onSnapshot(doc(db, 'admins', u.uid), s => { adminOk = s.exists(); admListOff(); admListOff = () => {}; adminIds = {}; if (adminOk) admListOff = onSnapshot(collection(db, 'admins'), q => { adminIds = {}; q.forEach(d => adminIds[d.id] = d.data()); renderAdmLists(); }, () => {}); renderAll(); retry(); }, () => { adminOk = false; });
+  adminOff(); admListOff(); adminIds = {}; upMap = {}; adminOk = u ? undefined : false;
+  if (u) adminOff = onSnapshot(doc(db, 'admins', u.uid), s => { adminOk = s.exists(); admListOff(); admListOff = () => {}; adminIds = {}; upMap = {}; if (adminOk) { const o1 = onSnapshot(collection(db, 'admins'), q => { adminIds = {}; q.forEach(d => adminIds[d.id] = d.data()); renderAdmLists(); }, () => {}), o2 = onSnapshot(collection(db, 'uploaders'), q => { upMap = {}; q.forEach(d => upMap[d.id] = d.data()); renderAdmLists(); }, () => {}); admListOff = () => { o1(); o2(); }; } renderAll(); retry(); }, () => { adminOk = false; });
   if (u) {
     const r = doc(db, 'users', u.uid);
     try { const s = await getDoc(r); if (!s.exists()) await setDoc(r, { name: u.displayName || (u.email ? u.email.split('@')[0] : 'Member'), photo: u.photoURL || '', social: {} });
-      if (u.email && s.data()?.email !== u.email) updateDoc(r, { email: u.email }).catch(() => {}); } catch (e) { toast('Firestore belum siap: cek aturan database'); }
+      const patch = {}; if (u.email && s.data()?.email !== u.email) patch.email = u.email; if (s.data()?.mid !== mid(u.uid)) patch.mid = mid(u.uid); if (Object.keys(patch).length) updateDoc(r, patch).catch(() => {}); } catch (e) { toast('Firestore belum siap: cek aturan database'); }
   }
   authReady = true; renderAuth(); renderAll(); route();
 });
@@ -363,7 +373,7 @@ function route() {
   if (r === 'notif') { $('#dNotif').classList.add('on'); seen = Math.max(Date.now(), ...events.map(e => tsMs(e.ts))); lsSet('seen', seen); setTimeout(renderEvents, 1500); return; }
   if (r === 'chat') { $('#dChatP').classList.add('on'); markChat(); renderChat(); $('#chatList').scrollTop = 1e9; return; }
   if (r === 'post') { if (!posts.find(x => x.id === a)) { if (postsLoaded) { toast('Karya tidak ditemukan'); location.replace(base); } return; } showPost(a); return; }
-  if (r === 'up') { if (!authReady) return; if (needLogin()) return location.replace(base); upForm(); return; }
+  if (r === 'up') { if (!authReady) return; if (needLogin()) return location.replace(base); if (adminOk === undefined || upDoc === undefined) return; if (canUp()) upForm(); else reqForm(); return; }
   if (r === 'atur') { if (!authReady || banner === undefined || (user && adminOk === undefined)) return; if (!isAdmin()) { toast('Hanya admin yang bisa mengatur tugas'); return location.replace(base); } banForm(); return; }
   location.replace('#/tugas');
 }
@@ -453,6 +463,7 @@ function upForm() {
   sel.onchange = () => $('#uOth').style.display = sel.value === '__o' ? 'block' : 'none';
   bindPrev($('#uLink'), $('#uPrev'));
   $('#uGo').onclick = async () => {
+    if (!canUp()) return toast('Kamu belum disetujui admin untuk up tugas');
     const theme = (sel.value === '__o' ? $('#uOth').value : sel.value).trim(), link = parseImg($('#uLink').value);
     if (!link) return toast('Tempel link imgbb dulu');
     if (!theme) return toast('Isi temanya dulu');
@@ -464,6 +475,20 @@ function upForm() {
       addEvent(`🎨 ${me.name} mengumpulkan tugas (tema: ${theme})`);
       toast('Tugas terkumpul! Jangan lupa kasih tau admin'); location.hash = '#/post/' + ref.id;
     } catch (e) { toast(e.message); $('#uGo').disabled = false; $('#uGo').textContent = 'Selesai / Up'; }
+  };
+}
+function reqForm() {
+  const me = U(user.uid), id = mid(user.uid), pending = !!upDoc;
+  modal(`<h3>Minta persetujuan admin</h3>
+  <p>Supaya tugas yang masuk tetap rapi, member harus disetujui admin dulu sebelum bisa up tugas. Ini <b>cukup 1x saja</b>, setelah disetujui kamu bebas up kapan pun.</p>
+  <div style="border:3px solid #111;border-radius:14px;padding:10px 12px;margin:12px 0"><p>Nama: <b>${esc(me.name)}</b></p><p>ID: <b>${id}</b></p></div>
+  ${pending ? '<p style="margin-bottom:12px"><span class="chip">⏳ Permintaan terkirim, menunggu admin</span></p>' : ''}
+  <button class="btn" id="rqGo">${pending ? 'Kirim ulang pesan WA' : 'Minta persetujuan via WA'}</button> <button class="btn gh" data-x>Nanti</button>`);
+  $('#rqGo').onclick = () => {
+    const n = waIntl(waNum), msg = `Halo admin Creunity 👋\nSaya minta persetujuan untuk bisa mengumpulkan tugas.\nNama: ${me.name}\nID: ${id}`;
+    if (n) window.open(`https://wa.me/${n}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener'); else toast('Nomor WA admin belum diatur, tapi permintaanmu tetap tercatat');
+    if (!upDoc) setDoc(doc(db, 'uploaders', user.uid), { approved: false, name: me.name, mid: id, ts: serverTimestamp() })
+      .then(() => toast('Permintaan terkirim, tunggu admin menyetujui')).catch(x => toast('Gagal mencatat permintaan: ' + (x.code || x.message)));
   };
 }
 function ppForm() {
@@ -619,6 +644,7 @@ function renderAcc() {
   <div class="box prof"><img class="pp" src="${esc(u.photo)}" alt="Foto profil">
     <div class="info">${own ? `<input class="fi" id="aName" value="${esc(u.name)}" maxlength="24" aria-label="Username"><button class="btn gh" id="aPP" type="button">+ Ganti pp</button>`
       : `<h2 style="font-size:26px;color:var(--neon)">${esc(u.name)}</h2>`}
+      <p class="hint" style="margin-top:6px">ID: <b>${mid(uid)}</b>${own ? (isAdmin() ? ' · 👑 Admin' : upDoc?.approved ? ' · ✅ Boleh up tugas' : upDoc ? ' · ⏳ Menunggu persetujuan admin' : '') : ''}</p>
       ${own ? `<div class="filters" style="margin:10px 0 0;grid-template-columns:1fr 1fr">${['tt','fb','ig','yt'].map(k => `<input class="fi" style="margin:0;border-radius:30px" id="s_${k}" placeholder="${k}" value="${esc(soc[k] || '')}">`).join('')}</div><p style="margin-top:10px"><button class="btn" id="aSave">Simpan</button> <button class="btn gh" id="logout">Keluar</button></p>`
       : `<div class="soc">${['tt','fb','ig','yt'].filter(k => soc[k]).map(k => `<a target="_blank" rel="noopener" href="${esc(link(k, soc[k]))}">${k}</a>`).join('')}</div>`}
     </div></div>
@@ -675,9 +701,9 @@ function renderAdmLists() {
   const ue = $('#admUsers'), pe = $('#admPosts'); if (!ue || !pe) return;
   if (!isAdmin()) return;
   const cnt = {}; posts.forEach(p => cnt[p.uid] = (cnt[p.uid] || 0) + 1);
-  const list = Object.keys(users).map(id => ({ id, ...U(id), email: users[id]?.email || '', adm: !!adminIds[id] }))
-    .sort((a, b) => b.adm - a.adm || a.name.localeCompare(b.name));
-  ue.innerHTML = `<p class="hint" style="margin-bottom:10px">${list.length} akun terdaftar · ${list.filter(x => x.adm).length} admin</p>` + (list.length ? list.map(x => `<div class="urow"><img class="av" src="${esc(x.photo)}" alt="" data-user="${x.id}"><div class="mid"><div class="nm">${esc(x.name)}${x.id === user.uid ? ' (kamu)' : ''}</div><small>${esc(x.email || 'email belum tercatat')} · ${cnt[x.id] || 0} karya</small></div>${x.adm ? '<span class="chip">Admin</span>' : ''}${x.id === user.uid ? '' : x.adm ? `<button class="btn gh" data-role="rm" data-uid="${x.id}">Cabut admin</button>` : `<button class="btn" data-role="mk" data-uid="${x.id}">Jadikan admin</button>`}</div>`).join('') : '<div class="empty">Belum ada akun.</div>');
+  const list = Object.keys(users).map(id => ({ id, ...U(id), email: users[id]?.email || '', adm: !!adminIds[id], ok: !!upMap[id]?.approved, pend: !!upMap[id] && !upMap[id].approved }))
+    .sort((a, b) => b.pend - a.pend || b.adm - a.adm || a.name.localeCompare(b.name));
+  ue.innerHTML = `<p class="hint" style="margin-bottom:10px">${list.length} akun terdaftar · ${list.filter(x => x.adm).length} admin · ${list.filter(x => x.pend).length} menunggu persetujuan up tugas</p>` + (list.length ? list.map(x => `<div class="urow"><img class="av" src="${esc(x.photo)}" alt="" data-user="${x.id}"><div class="mid"><div class="nm">${esc(x.name)}${x.id === user.uid ? ' (kamu)' : ''}</div><small>ID ${mid(x.id)} · ${esc(x.email || 'email belum tercatat')} · ${cnt[x.id] || 0} karya</small></div>${x.adm ? '<span class="chip">Admin</span>' : ''}${x.pend ? '<span class="chip" style="background:#ffc928">⏳ Menunggu</span>' : ''}<label class="ck"><input type="checkbox" data-upck="${x.id}" ${x.ok || x.adm ? 'checked' : ''} ${x.adm ? 'disabled' : ''}>Boleh up tugas</label>${x.id === user.uid ? '' : x.adm ? `<button class="btn gh" data-role="rm" data-uid="${x.id}">Cabut admin</button>` : `<button class="btn" data-role="mk" data-uid="${x.id}">Jadikan admin</button>`}</div>`).join('') : '<div class="empty">Belum ada akun.</div>');
   pe.innerHTML = posts.length ? posts.map(p => `<div class="prow"><img class="th2" src="${esc(p.img)}" alt="Karya" data-post="${p.id}"><div class="mid"><b>${esc(U(p.uid, p).name)}</b>Tema: ${esc(p.theme)}<br><span class="hint">${fmt(p.ts)}</span></div><button class="btn red" data-delpost="${p.id}">Hapus</button></div>`).join('') : '<div class="empty">Belum ada karya.</div>';
 }
 async function setRole(uid, make) {
@@ -708,6 +734,15 @@ $('#p-adm').addEventListener('click', e => {
   const rb = e.target.closest('[data-role]'); if (rb) setRole(rb.dataset.uid, rb.dataset.role === 'mk');
   const dp = e.target.closest('[data-delpost]'); if (dp) { const p = posts.find(x => x.id === dp.dataset.delpost); if (p) delPost(p); }
   if (e.target.closest('#admOut')) deleteDoc(doc(db, 'admins', user.uid)).then(() => toast('Status admin dilepas'));
+});
+$('#p-adm').addEventListener('change', async e => {
+  const c = e.target.closest('[data-upck]'); if (!c || !isAdmin()) return;
+  const uid = c.dataset.upck, on = c.checked, nm = U(uid).name;
+  try {
+    await setDoc(doc(db, 'uploaders', uid), { approved: on, name: nm, mid: mid(uid), by: user.uid, at: serverTimestamp() }, { merge: true });
+    toast(on ? nm + ' boleh up tugas' : 'Izin up tugas ' + nm + ' dicabut');
+    if (on) addEvent('✅ Kamu sudah disetujui admin, sekarang bisa up tugas!', uid);
+  } catch (x) { toast('Gagal: ' + (x.code || x.message)); c.checked = !on; }
 });
 renderAll(); renderAuth();
 </script>
