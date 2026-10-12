@@ -521,14 +521,14 @@ function upForm() {
   };
 }
 function reqForm() {
-  const me = U(user.uid), id = mid(user.uid), pending = !!upDoc;
-  modal(`<h3>Minta persetujuan admin</h3>
-  <p>Supaya tugas yang masuk tetap rapi, member harus disetujui admin dulu sebelum bisa up tugas. Ini <b>cukup 1x saja</b>, setelah disetujui kamu bebas up kapan pun.</p>
+  const me = U(user.uid), id = mid(user.uid), revoked = !!upDoc?.revoked, pending = !!upDoc && !revoked;
+  modal(`<h3>${revoked ? 'Izin up tugas dinonaktifkan' : 'Minta persetujuan admin'}</h3>
+  ${revoked ? '<p>Admin menonaktifkan izin up tugasmu. Kalau merasa ini keliru, hubungi admin lewat WA.</p>' : ''}<p style="${revoked ? 'display:none' : ''}">Supaya tugas yang masuk tetap rapi, member harus disetujui admin dulu sebelum bisa up tugas. Ini <b>cukup 1x saja</b>, setelah disetujui kamu bebas up kapan pun.</p>
   <div style="border:3px solid #111;border-radius:14px;padding:10px 12px;margin:12px 0"><p>Nama: <b>${esc(me.name)}</b></p><p>ID: <b>${id}</b></p></div>
   ${pending ? '<p style="margin-bottom:12px"><span class="chip">⏳ Permintaan terkirim, menunggu admin</span></p>' : ''}
-  <button class="btn" id="rqGo">${pending ? 'Kirim ulang pesan WA' : 'Minta persetujuan via WA'}</button> <button class="btn gh" data-x>Nanti</button>`);
+  <button class="btn" id="rqGo">${revoked ? 'Hubungi admin via WA' : pending ? 'Kirim ulang pesan WA' : 'Minta persetujuan via WA'}</button> <button class="btn gh" data-x>Nanti</button>`);
   $('#rqGo').onclick = () => {
-    const n = waIntl(waNum), msg = `Halo admin Creunity 👋\nSaya minta persetujuan untuk bisa mengumpulkan tugas.\nNama: ${me.name}\nID: ${id}`;
+    const n = waIntl(waNum), msg = `Halo admin Creunity 👋\n${revoked ? 'Izin up tugas saya dinonaktifkan, mohon dicek ya.' : 'Saya minta persetujuan untuk bisa mengumpulkan tugas.'}\nNama: ${me.name}\nID: ${id}`;
     if (n) window.open(`https://wa.me/${n}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener'); else toast('Nomor WA admin belum diatur, tapi permintaanmu tetap tercatat');
     if (!upDoc) setDoc(doc(db, 'uploaders', user.uid), { approved: false, name: me.name, mid: id, ts: serverTimestamp() })
       .then(() => toast('Permintaan terkirim, tunggu admin menyetujui')).catch(x => toast('Gagal mencatat permintaan: ' + (x.code || x.message)));
@@ -692,7 +692,7 @@ function renderAcc() {
   <div class="box prof"><img class="pp" src="${esc(u.photo)}" alt="Foto profil">
     <div class="info">${own ? `<input class="fi" id="aName" value="${esc(u.name)}" maxlength="24" aria-label="Username"><button class="btn gh" id="aPP" type="button">+ Ganti pp</button>`
       : `<h2 style="font-size:26px;color:var(--neon)">${esc(u.name)}</h2>`}
-      <p class="hint" style="margin-top:6px">ID: <b>${mid(uid)}</b>${own ? (isAdmin() ? ' · 👑 Admin' : upDoc?.approved ? ' · ✅ Boleh up tugas' : upDoc ? ' · ⏳ Menunggu persetujuan admin' : '') : ''}</p>
+      <p class="hint" style="margin-top:6px">ID: <b>${mid(uid)}</b>${own ? (isAdmin() ? ' · 👑 Admin' : upDoc?.approved ? ' · ✅ Boleh up tugas' : upDoc?.revoked ? ' · ⛔ Izin up tugas dinonaktifkan' : upDoc ? ' · ⏳ Menunggu persetujuan admin' : '') : ''}</p>
       ${own ? `<div class="filters" style="margin:10px 0 0;grid-template-columns:1fr 1fr">${['tt','fb','ig','yt'].map(k => `<input class="fi" style="margin:0;border-radius:30px" id="s_${k}" placeholder="${k}" value="${esc(soc[k] || '')}">`).join('')}</div><p style="margin-top:10px"><button class="btn" id="aSave">Simpan</button> <button class="btn gh" id="logout">Keluar</button></p>`
       : `<div class="soc">${['tt','fb','ig','yt'].filter(k => soc[k]).map(k => `<a target="_blank" rel="noopener" href="${esc(link(k, soc[k]))}">${k}</a>`).join('')}</div>`}
     </div></div>
@@ -749,10 +749,10 @@ function renderAdmLists() {
   const ue = $('#admUsers'), pe = $('#admPosts'); if (!ue || !pe) return;
   if (!isAdmin()) return;
   const cnt = {}; posts.forEach(p => cnt[p.uid] = (cnt[p.uid] || 0) + 1);
-  const list = Object.keys(users).map(id => ({ id, ...U(id), email: users[id]?.email || '', adm: !!adminIds[id], ok: !!upMap[id]?.approved, pend: !!upMap[id] && !upMap[id].approved, ban: bansMap[id] || null }))
+  const list = Object.keys(users).map(id => ({ id, ...U(id), email: users[id]?.email || '', adm: !!adminIds[id], ok: !!upMap[id]?.approved, pend: !!upMap[id] && !upMap[id].approved && !upMap[id].revoked, rev: !!upMap[id]?.revoked && !upMap[id].approved, ban: bansMap[id] || null }))
     .sort((a, b) => !!b.ban - !!a.ban || b.pend - a.pend || b.adm - a.adm || a.name.localeCompare(b.name));
   ue.innerHTML = `<p class="hint" style="margin-bottom:12px">${list.length} akun · ${list.filter(x => x.adm).length} admin · ${list.filter(x => x.pend).length} menunggu persetujuan · ${list.filter(x => x.ban).length} diblokir</p>` + (list.length ? list.map(x => `<div class="ucard ${x.ban ? 'banned' : ''}">
-    <div class="uhead"><img class="av" src="${esc(x.photo)}" alt="" data-user="${x.id}"><div class="mid"><div class="nm">${esc(x.name)}${x.id === user.uid ? ' (kamu)' : ''}${x.adm ? '<span class="chip">👑 Admin</span>' : ''}${x.pend ? '<span class="chip" style="background:#ffc928">⏳ Menunggu</span>' : ''}${x.ban ? '<span class="chip" style="background:var(--red);color:#fff">🚫 Diblokir</span>' : ''}</div><small>ID ${mid(x.id)} · ${cnt[x.id] || 0} karya</small><small>${esc(x.email || 'email belum tercatat')}</small></div></div>
+    <div class="uhead"><img class="av" src="${esc(x.photo)}" alt="" data-user="${x.id}"><div class="mid"><div class="nm">${esc(x.name)}${x.id === user.uid ? ' (kamu)' : ''}${x.adm ? '<span class="chip">👑 Admin</span>' : ''}${x.pend ? '<span class="chip" style="background:#ffc928">⏳ Menunggu</span>' : ''}${x.rev ? '<span class="chip" style="background:#ddd">⛔ Izin dicabut</span>' : ''}${x.ban ? '<span class="chip" style="background:var(--red);color:#fff">🚫 Diblokir</span>' : ''}</div><small>ID ${mid(x.id)} · ${cnt[x.id] || 0} karya</small><small>${esc(x.email || 'email belum tercatat')}</small></div></div>
     ${x.ban ? `<div class="ubn">Alasan: ${esc(x.ban.reason || '-')}</div>` : ''}
     <div class="uact"><label class="sw"><input type="checkbox" data-upck="${x.id}" ${(x.ok || x.adm) && !x.ban ? 'checked' : ''} ${x.adm || x.ban ? 'disabled' : ''}><span class="trk"></span><span class="lbl">Boleh up tugas</span></label>
     <div class="ubtns">${x.id === user.uid ? '' : (x.adm ? `<button class="btn gh" data-role="rm" data-uid="${x.id}">Cabut admin</button>` : `${x.ban ? '' : `<button class="btn" data-role="mk" data-uid="${x.id}">Jadikan admin</button>`}${x.ban ? `<button class="btn" data-unban="${x.id}">Buka blokir</button>` : `<button class="btn red" data-ban="${x.id}">🚫 Blokir</button>`}`)}</div></div></div>`).join('') : '<div class="empty">Belum ada akun.</div>');
@@ -813,11 +813,14 @@ $('#p-adm').addEventListener('click', async e => {
 $('#p-adm').addEventListener('change', async e => {
   const c = e.target.closest('[data-upck]'); if (!c || !isAdmin()) return;
   const uid = c.dataset.upck, on = c.checked, nm = U(uid).name;
+  if (!on && !confirm(`Nonaktifkan izin up tugas untuk ${nm}?`)) { c.checked = true; return; }
+  c.disabled = true;
   try {
-    await setDoc(doc(db, 'uploaders', uid), { approved: on, name: nm, mid: mid(uid), by: user.uid, at: serverTimestamp() }, { merge: true });
-    toast(on ? nm + ' boleh up tugas' : 'Izin up tugas ' + nm + ' dicabut');
-    if (on) addEvent('✅ Kamu sudah disetujui admin, sekarang bisa up tugas!', uid);
+    await setDoc(doc(db, 'uploaders', uid), { approved: on, revoked: !on, name: nm, mid: mid(uid), by: user.uid, at: serverTimestamp() }, { merge: true });
+    toast(on ? nm + ' boleh up tugas' : 'Izin up tugas ' + nm + ' dinonaktifkan');
+    addEvent(on ? '✅ Kamu sudah disetujui admin, sekarang bisa up tugas!' : '⛔ Izin up tugasmu dinonaktifkan admin', uid);
   } catch (x) { toast('Gagal: ' + (x.code || x.message)); c.checked = !on; }
+  c.disabled = false;
 });
 renderAll(); renderAuth();
 </script>
