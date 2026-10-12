@@ -258,7 +258,7 @@ function mid(uid) { let h1 = 0xdeadbeef, h2 = 0x41c6ce57; for (let i = 0; i < ui
   h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
   return 'CRU-' + (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36).toUpperCase().padStart(6, '0').slice(-6); }
 const isBanned = () => !!user && !!bansMap[user.uid];
-const canUp = () => !isBanned() && (isAdmin() || upDoc?.approved === true);
+const canUp = () => !isBanned() && upDoc?.revoked !== true && (isAdmin() || upDoc?.approved === true);
 const U = (uid, p) => ({ name: users[uid]?.name || p?.name || 'Anonim', photo: users[uid]?.photo || p?.photo || NOPP });
 
 // ---------- auth ----------
@@ -754,7 +754,7 @@ function renderAdmLists() {
   ue.innerHTML = `<p class="hint" style="margin-bottom:12px">${list.length} akun · ${list.filter(x => x.adm).length} admin · ${list.filter(x => x.pend).length} menunggu persetujuan · ${list.filter(x => x.ban).length} diblokir</p>` + (list.length ? list.map(x => `<div class="ucard ${x.ban ? 'banned' : ''}">
     <div class="uhead"><img class="av" src="${esc(x.photo)}" alt="" data-user="${x.id}"><div class="mid"><div class="nm">${esc(x.name)}${x.id === user.uid ? ' (kamu)' : ''}${x.adm ? '<span class="chip">👑 Admin</span>' : ''}${x.pend ? '<span class="chip" style="background:#ffc928">⏳ Menunggu</span>' : ''}${x.rev ? '<span class="chip" style="background:#ddd">⛔ Izin dicabut</span>' : ''}${x.ban ? '<span class="chip" style="background:var(--red);color:#fff">🚫 Diblokir</span>' : ''}</div><small>ID ${mid(x.id)} · ${cnt[x.id] || 0} karya</small><small>${esc(x.email || 'email belum tercatat')}</small></div></div>
     ${x.ban ? `<div class="ubn">Alasan: ${esc(x.ban.reason || '-')}</div>` : ''}
-    <div class="uact"><label class="sw"><input type="checkbox" data-upck="${x.id}" ${(x.ok || x.adm) && !x.ban ? 'checked' : ''} ${x.adm || x.ban ? 'disabled' : ''}><span class="trk"></span><span class="lbl">Boleh up tugas</span></label>
+    <div class="uact"><label class="sw"><input type="checkbox" data-upck="${x.id}" ${((x.ok || x.adm) && !x.rev) && !x.ban ? 'checked' : ''} ${x.ban ? 'disabled' : ''}><span class="trk"></span><span class="lbl">Boleh up tugas</span></label>
     <div class="ubtns">${x.id === user.uid ? '' : (x.adm ? `<button class="btn gh" data-role="rm" data-uid="${x.id}">Cabut admin</button>` : `${x.ban ? '' : `<button class="btn" data-role="mk" data-uid="${x.id}">Jadikan admin</button>`}${x.ban ? `<button class="btn" data-unban="${x.id}">Buka blokir</button>` : `<button class="btn red" data-ban="${x.id}">🚫 Blokir</button>`}`)}</div></div></div>`).join('') : '<div class="empty">Belum ada akun.</div>');
   pe.innerHTML = posts.length ? posts.map(p => `<div class="prow ${p.takedown ? 'td' : ''}"><img class="th2" src="${esc(p.img)}" alt="Karya" data-post="${p.id}"><div class="mid"><b>${esc(U(p.uid, p).name)}</b>Tema: ${esc(p.theme)}<br><span class="hint">${fmt(p.ts)}</span>${p.takedown ? `<br><span class="hint" style="color:#c0392b">🚫 Takedown: ${esc(p.takedown.reason || '-')}</span>` : ''}</div><div style="display:flex;flex-direction:column;gap:6px">${p.takedown ? `<button class="btn" data-untd="${p.id}">Pulihkan</button>` : `<button class="btn gh" data-td="${p.id}">Takedown</button>`}<button class="btn red" data-delpost="${p.id}">Hapus</button></div></div>`).join('') : '<div class="empty">Belum ada karya.</div>';
 }
