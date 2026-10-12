@@ -243,7 +243,7 @@ function parseImg(s) {
 function toast(t) { const e = document.createElement('div'); e.className = 'toast'; e.textContent = t; $('#toasts').append(e); setTimeout(() => e.remove(), 4500); }
 
 // ---------- state ----------
-let user = null, banner, posts = [], users = {}, events = [], chat = [], adminIds = {}, admListOff = () => {}, upMap = {}, upDoc = null, upOff = () => {}, bansMap = {}, banOff = () => {};
+let user = null, banner, posts = [], users = {}, events = [], chat = [], adminIds = {}, admListOff = () => {}, upMap = {}, upDoc = null, upOff = () => {}, bansMap = {}, banOff = () => {}, admQ = '';
 let base = '#/tugas', authReady = false, postsLoaded = false, adminOk = false, adminOff = () => {}, waNum = '';
 let tab = 'home', viewUid = null, F = { theme: '', grade: '', sort: 'new' };
 const lsGet = k => { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } };
@@ -742,20 +742,21 @@ function renderAdm() {
     <form id="admForm"><label for="aEmail">Email admin</label><input class="fi" id="aEmail" type="email" required>
     <label for="aPw">Sandi</label><input class="fi" id="aPw" type="password" required>
     <button class="btn" id="admGo">Jadi admin</button></form>`;
-  el.innerHTML = `<div class="sec"><h2>Admin</h2></div><div class="box">${body}</div>` + (isAdmin() ? `<div class="sec"><h2>Akun member</h2></div><div class="box" id="admUsers"></div><div class="sec"><h2>Karya member</h2></div><div class="box" id="admPosts"></div>` : '');
+  el.innerHTML = `<div class="sec"><h2>Admin</h2></div><div class="box">${body}</div>` + (isAdmin() ? `<div class="sec"><h2>Akun member</h2></div><input class="fi" id="admQ" type="search" autocomplete="off" placeholder="🔍 Cari nama, ID (CRU-…), atau email" aria-label="Cari akun member" value="${esc(admQ)}"><div class="box" id="admUsers"></div><div class="sec"><h2>Karya member</h2></div><div class="box" id="admPosts"></div>` : '');
   renderAdmLists();
 }
 function renderAdmLists() {
   const ue = $('#admUsers'), pe = $('#admPosts'); if (!ue || !pe) return;
   if (!isAdmin()) return;
   const cnt = {}; posts.forEach(p => cnt[p.uid] = (cnt[p.uid] || 0) + 1);
-  const list = Object.keys(users).map(id => ({ id, ...U(id), email: users[id]?.email || '', adm: !!adminIds[id], ok: !!upMap[id]?.approved, pend: !!upMap[id] && !upMap[id].approved && !upMap[id].revoked, rev: !!upMap[id]?.revoked && !upMap[id].approved, ban: bansMap[id] || null }))
+  const all = Object.keys(users).map(id => ({ id, ...U(id), email: users[id]?.email || '', adm: !!adminIds[id], ok: !!upMap[id]?.approved, pend: !!upMap[id] && !upMap[id].approved && !upMap[id].revoked, rev: !!upMap[id]?.revoked && !upMap[id].approved, ban: bansMap[id] || null }))
     .sort((a, b) => !!b.ban - !!a.ban || b.pend - a.pend || b.adm - a.adm || a.name.localeCompare(b.name));
-  ue.innerHTML = `<p class="hint" style="margin-bottom:12px">${list.length} akun · ${list.filter(x => x.adm).length} admin · ${list.filter(x => x.pend).length} menunggu persetujuan · ${list.filter(x => x.ban).length} diblokir</p>` + (list.length ? list.map(x => `<div class="ucard ${x.ban ? 'banned' : ''}">
+  const q = admQ.trim().toLowerCase(), list = !q ? all : all.filter(x => x.name.toLowerCase().includes(q) || mid(x.id).toLowerCase().includes(q) || x.email.toLowerCase().includes(q));
+  ue.innerHTML = `<p class="hint" style="margin-bottom:12px">${all.length} akun · ${all.filter(x => x.adm).length} admin · ${all.filter(x => x.pend).length} menunggu persetujuan · ${all.filter(x => x.ban).length} diblokir${q ? ` · menampilkan ${list.length} hasil` : ''}</p>` + (list.length ? list.map(x => `<div class="ucard ${x.ban ? 'banned' : ''}">
     <div class="uhead"><img class="av" src="${esc(x.photo)}" alt="" data-user="${x.id}"><div class="mid"><div class="nm">${esc(x.name)}${x.id === user.uid ? ' (kamu)' : ''}${x.adm ? '<span class="chip">👑 Admin</span>' : ''}${x.pend ? '<span class="chip" style="background:#ffc928">⏳ Menunggu</span>' : ''}${x.rev ? '<span class="chip" style="background:#ddd">⛔ Izin dicabut</span>' : ''}${x.ban ? '<span class="chip" style="background:var(--red);color:#fff">🚫 Diblokir</span>' : ''}</div><small>ID ${mid(x.id)} · ${cnt[x.id] || 0} karya</small><small>${esc(x.email || 'email belum tercatat')}</small></div></div>
     ${x.ban ? `<div class="ubn">Alasan: ${esc(x.ban.reason || '-')}</div>` : ''}
     <div class="uact"><label class="sw"><input type="checkbox" data-upck="${x.id}" ${((x.ok || x.adm) && !x.rev) && !x.ban ? 'checked' : ''} ${x.ban ? 'disabled' : ''}><span class="trk"></span><span class="lbl">Boleh up tugas</span></label>
-    <div class="ubtns">${x.id === user.uid ? '' : (x.adm ? `<button class="btn gh" data-role="rm" data-uid="${x.id}">Cabut admin</button>` : `${x.ban ? '' : `<button class="btn" data-role="mk" data-uid="${x.id}">Jadikan admin</button>`}${x.ban ? `<button class="btn" data-unban="${x.id}">Buka blokir</button>` : `<button class="btn red" data-ban="${x.id}">🚫 Blokir</button>`}`)}</div></div></div>`).join('') : '<div class="empty">Belum ada akun.</div>');
+    <div class="ubtns">${x.id === user.uid ? '' : (x.adm ? `<button class="btn gh" data-role="rm" data-uid="${x.id}">Cabut admin</button>` : `${x.ban ? '' : `<button class="btn" data-role="mk" data-uid="${x.id}">Jadikan admin</button>`}${x.ban ? `<button class="btn" data-unban="${x.id}">Buka blokir</button>` : `<button class="btn red" data-ban="${x.id}">🚫 Blokir</button>`}`)}</div></div></div>`).join('') : `<div class="empty">${q ? 'Tidak ada akun yang cocok dengan "' + esc(admQ.trim()) + '".' : 'Belum ada akun.'}</div>`);
   pe.innerHTML = posts.length ? posts.map(p => `<div class="prow ${p.takedown ? 'td' : ''}"><img class="th2" src="${esc(p.img)}" alt="Karya" data-post="${p.id}"><div class="mid"><b>${esc(U(p.uid, p).name)}</b>Tema: ${esc(p.theme)}<br><span class="hint">${fmt(p.ts)}</span>${p.takedown ? `<br><span class="hint" style="color:#c0392b">🚫 Takedown: ${esc(p.takedown.reason || '-')}</span>` : ''}</div><div style="display:flex;flex-direction:column;gap:6px">${p.takedown ? `<button class="btn" data-untd="${p.id}">Pulihkan</button>` : `<button class="btn gh" data-td="${p.id}">Takedown</button>`}<button class="btn red" data-delpost="${p.id}">Hapus</button></div></div>`).join('') : '<div class="empty">Belum ada karya.</div>';
 }
 async function setRole(uid, make) {
@@ -810,6 +811,7 @@ $('#p-adm').addEventListener('click', async e => {
   const ut = e.target.closest('[data-untd]'); if (ut) { const p = posts.find(x => x.id === ut.dataset.untd); if (!p) return;
     try { await updateDoc(doc(db, 'posts', p.id), { takedown: null }); addEvent(`✅ Karyamu (tema: ${p.theme}) sudah dipulihkan admin`, p.uid); toast('Karya dipulihkan'); } catch (x) { toast('Gagal: ' + (x.code || x.message)); } }
 });
+$('#p-adm').addEventListener('input', e => { if (e.target.id === 'admQ') { admQ = e.target.value; renderAdmLists(); } });
 $('#p-adm').addEventListener('change', async e => {
   const c = e.target.closest('[data-upck]'); if (!c || !isAdmin()) return;
   const uid = c.dataset.upck, on = c.checked, nm = U(uid).name;
