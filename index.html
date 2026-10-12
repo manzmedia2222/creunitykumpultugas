@@ -210,8 +210,8 @@ label{font-weight:700;font-size:13px;color:var(--mut)}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-analytics.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, deleteUser, reauthenticateWithPopup } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyDsU-Sn8dVjyNW2-T4PEaUVUkYrpy3Nm94",
@@ -693,7 +693,7 @@ function renderAcc() {
     <div class="info">${own ? `<input class="fi" id="aName" value="${esc(u.name)}" maxlength="24" aria-label="Username"><button class="btn gh" id="aPP" type="button">+ Ganti pp</button>`
       : `<h2 style="font-size:26px;color:var(--neon)">${esc(u.name)}</h2>`}
       <p class="hint" style="margin-top:6px">ID: <b>${mid(uid)}</b>${own ? (isAdmin() ? ' · 👑 Admin' : upDoc?.approved ? ' · ✅ Boleh up tugas' : upDoc?.revoked ? ' · ⛔ Izin up tugas dinonaktifkan' : upDoc ? ' · ⏳ Menunggu persetujuan admin' : '') : ''}</p>
-      ${own ? `<div class="filters" style="margin:10px 0 0;grid-template-columns:1fr 1fr">${['tt','fb','ig','yt'].map(k => `<input class="fi" style="margin:0;border-radius:30px" id="s_${k}" placeholder="${k}" value="${esc(soc[k] || '')}">`).join('')}</div><p style="margin-top:10px"><button class="btn" id="aSave">Simpan</button> <button class="btn gh" id="logout">Keluar</button></p>`
+      ${own ? `<div class="filters" style="margin:10px 0 0;grid-template-columns:1fr 1fr">${['tt','fb','ig','yt'].map(k => `<input class="fi" style="margin:0;border-radius:30px" id="s_${k}" placeholder="${k}" value="${esc(soc[k] || '')}">`).join('')}</div><p style="margin-top:10px"><button class="btn" id="aSave">Simpan</button> <button class="btn gh" id="logout">Keluar</button> <button class="btn red" id="delAcc">Hapus akun</button></p>`
       : `<div class="soc">${['tt','fb','ig','yt'].filter(k => soc[k]).map(k => `<a target="_blank" rel="noopener" href="${esc(link(k, soc[k]))}">${k}</a>`).join('')}</div>`}
     </div></div>
   <div class="sec"><h2>Kumpulan gambar ${esc(u.name)}</h2>${own ? '<button class="btn" id="upBtn2">+ Up tugas</button>' : ''}</div>
@@ -704,6 +704,7 @@ $('#p-acc').addEventListener('click', e => {
   if (e.target.closest('#aPP')) ppForm();
   if (e.target.closest('#back')) go('acc');
   if (e.target.closest('#upBtn2')) location.hash = '#/up';
+  if (e.target.closest('#delAcc')) delAccForm();
   if (e.target.closest('#logout')) signOut(auth).then(() => toast('Sampai jumpa!'));
   if (e.target.closest('#aSave')) saveProfile();
 });
@@ -756,7 +757,7 @@ function renderAdmLists() {
     <div class="uhead"><img class="av" src="${esc(x.photo)}" alt="" data-user="${x.id}"><div class="mid"><div class="nm">${esc(x.name)}${x.id === user.uid ? ' (kamu)' : ''}${x.adm ? '<span class="chip">👑 Admin</span>' : ''}${x.pend ? '<span class="chip" style="background:#ffc928">⏳ Menunggu</span>' : ''}${x.rev ? '<span class="chip" style="background:#ddd">⛔ Izin dicabut</span>' : ''}${x.ban ? '<span class="chip" style="background:var(--red);color:#fff">🚫 Diblokir</span>' : ''}</div><small>ID ${mid(x.id)} · ${cnt[x.id] || 0} karya</small><small>${esc(x.email || 'email belum tercatat')}</small></div></div>
     ${x.ban ? `<div class="ubn">Alasan: ${esc(x.ban.reason || '-')}</div>` : ''}
     <div class="uact"><label class="sw"><input type="checkbox" data-upck="${x.id}" ${((x.ok || x.adm) && !x.rev) && !x.ban ? 'checked' : ''} ${x.ban ? 'disabled' : ''}><span class="trk"></span><span class="lbl">Boleh up tugas</span></label>
-    <div class="ubtns">${x.id === user.uid ? '' : (x.adm ? `<button class="btn gh" data-role="rm" data-uid="${x.id}">Cabut admin</button>` : `${x.ban ? '' : `<button class="btn" data-role="mk" data-uid="${x.id}">Jadikan admin</button>`}${x.ban ? `<button class="btn" data-unban="${x.id}">Buka blokir</button>` : `<button class="btn red" data-ban="${x.id}">🚫 Blokir</button>`}`)}</div></div></div>`).join('') : `<div class="empty">${q ? 'Tidak ada akun yang cocok dengan "' + esc(admQ.trim()) + '".' : 'Belum ada akun.'}</div>`);
+    <div class="ubtns">${x.id === user.uid ? '' : (x.adm ? `<button class="btn gh" data-role="rm" data-uid="${x.id}">Cabut admin</button>` : `${x.ban ? '' : `<button class="btn" data-role="mk" data-uid="${x.id}">Jadikan admin</button>`}${x.ban ? `<button class="btn" data-unban="${x.id}">Buka blokir</button>` : `<button class="btn red" data-ban="${x.id}">🚫 Blokir</button><button class="btn red" data-delacc="${x.id}">🗑️ Hapus akun</button>`}`)}</div></div></div>`).join('') : `<div class="empty">${q ? 'Tidak ada akun yang cocok dengan "' + esc(admQ.trim()) + '".' : 'Belum ada akun.'}</div>`);
   pe.innerHTML = posts.length ? posts.map(p => `<div class="prow ${p.takedown ? 'td' : ''}"><img class="th2" src="${esc(p.img)}" alt="Karya" data-post="${p.id}"><div class="mid"><b>${esc(U(p.uid, p).name)}</b>Tema: ${esc(p.theme)}<br><span class="hint">${fmt(p.ts)}</span>${p.takedown ? `<br><span class="hint" style="color:#c0392b">🚫 Takedown: ${esc(p.takedown.reason || '-')}</span>` : ''}</div><div style="display:flex;flex-direction:column;gap:6px">${p.takedown ? `<button class="btn" data-untd="${p.id}">Pulihkan</button>` : `<button class="btn gh" data-td="${p.id}">Takedown</button>`}<button class="btn red" data-delpost="${p.id}">Hapus</button></div></div>`).join('') : '<div class="empty">Belum ada karya.</div>';
 }
 async function setRole(uid, make) {
@@ -788,6 +789,41 @@ $('#p-adm').addEventListener('click', e => {
   const dp = e.target.closest('[data-delpost]'); if (dp) { const p = posts.find(x => x.id === dp.dataset.delpost); if (p) delPost(p); }
   if (e.target.closest('#admOut')) deleteDoc(doc(db, 'admins', user.uid)).then(() => toast('Status admin dilepas'));
 });
+// hapus semua data akun: karya, profil, izin up tugas
+async function wipeUser(uid) {
+  const ids = new Set(posts.filter(p => p.uid === uid).map(p => p.id));
+  try { (await getDocs(query(collection(db, 'posts'), where('uid', '==', uid)))).forEach(d => ids.add(d.id)); } catch (e) {}
+  await Promise.all([...ids].map(id => deleteDoc(doc(db, 'posts', id))));
+  await deleteDoc(doc(db, 'users', uid));
+  await deleteDoc(doc(db, 'uploaders', uid)).catch(() => {});
+}
+function delAccForm() {
+  if (!user || isBanned()) return;
+  if (isAdmin()) return toast('Lepas status admin dulu di tab Admin, baru bisa hapus akun');
+  const n = posts.filter(p => p.uid === user.uid).length;
+  modal(`<h3>Hapus akunmu?</h3><p>Ini <b>permanen</b>. Profilmu, ${n} karya yang sudah kamu up, dan izin up tugasmu akan dihapus, lalu akunmu ditutup. Chat dan komentar lama tetap ada di tempatnya.</p>
+  <p class="hint" style="margin:8px 0">Kamu akan diminta login Google sekali lagi untuk memastikan ini memang kamu.</p>
+  <label for="dcIn" style="display:block;margin-top:8px">Ketik <b>HAPUS</b> untuk konfirmasi</label><input class="fi" id="dcIn" autocomplete="off" placeholder="HAPUS">
+  <button class="btn red" id="dcGo">Hapus akunku</button> <button class="btn gh" data-x>Batal</button>`);
+  $('#dcGo').onclick = async () => {
+    if ($('#dcIn').value.trim().toUpperCase() !== 'HAPUS') return toast('Ketik HAPUS dulu untuk konfirmasi');
+    const cu = auth.currentUser, uid = user.uid; $('#dcGo').disabled = true;
+    try {
+      await reauthenticateWithPopup(cu, new GoogleAuthProvider());
+      await wipeUser(uid);
+      try { await deleteUser(cu); } catch (e) { await signOut(auth); }
+      hideM(); location.hash = '#/tugas'; toast('Akunmu sudah dihapus. Sampai jumpa!');
+    } catch (e) { toast(e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request' ? 'Dibatalkan' : 'Gagal menghapus: ' + (e.code || e.message)); $('#dcGo').disabled = false; }
+  };
+}
+function delUserForm(uid) {
+  const n = posts.filter(p => p.uid === uid).length;
+  modal(`<h3>Hapus akun member?</h3><p>Akun <b>${esc(U(uid).name)}</b> (${mid(uid)}) akan dihapus permanen beserta ${n} karyanya, profil, dan izin up tugasnya.</p>
+  <p class="hint" style="margin:8px 0">Login Google-nya tidak ikut terhapus. Kalau dia masuk lagi, akunnya dibuat baru dan kosong, tanpa izin up tugas. Untuk menutup akun secara tegas, pakai Blokir.</p>
+  <button class="btn red" id="duGo">Hapus akun</button> <button class="btn gh" data-x>Batal</button>`);
+  $('#duGo').onclick = async () => { $('#duGo').disabled = true;
+    try { await wipeUser(uid); hideM(); toast('Akun dihapus'); } catch (x) { toast('Gagal: ' + (x.code || x.message)); $('#duGo').disabled = false; } };
+}
 const reasonForm = (title, info, label, ph, btnTxt, onGo) => {
   modal(`<h3>${title}</h3><p>${info}</p><label for="rsn" style="display:block;margin-top:10px">${label}</label><textarea class="ta" id="rsn" maxlength="200" placeholder="${ph}"></textarea>
   <button class="btn red" id="rsGo">${btnTxt}</button> <button class="btn gh" data-x>Batal</button>`);
@@ -807,6 +843,7 @@ $('#p-adm').addEventListener('click', async e => {
   if (!isAdmin()) return;
   const b = e.target.closest('[data-ban]'); if (b) return blockForm(b.dataset.ban);
   const ub = e.target.closest('[data-unban]'); if (ub) { if (!confirm(`Buka blokir ${U(ub.dataset.unban).name}?`)) return; try { await deleteDoc(doc(db, 'bans', ub.dataset.unban)); toast('Blokir dibuka'); } catch (x) { toast('Gagal: ' + (x.code || x.message)); } return; }
+  const da = e.target.closest('[data-delacc]'); if (da) return delUserForm(da.dataset.delacc);
   const t = e.target.closest('[data-td]'); if (t) { const p = posts.find(x => x.id === t.dataset.td); if (p) tdForm(p); return; }
   const ut = e.target.closest('[data-untd]'); if (ut) { const p = posts.find(x => x.id === ut.dataset.untd); if (!p) return;
     try { await updateDoc(doc(db, 'posts', p.id), { takedown: null }); addEvent(`✅ Karyamu (tema: ${p.theme}) sudah dipulihkan admin`, p.uid); toast('Karya dipulihkan'); } catch (x) { toast('Gagal: ' + (x.code || x.message)); } }
